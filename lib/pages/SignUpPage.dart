@@ -12,7 +12,6 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-  String? _selectedBloodType;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +133,6 @@ class _SignUpPageState extends State<SignUpPage> {
                       .toList(),
                   onChanged: (value) {
                     setState(() {
-                      _selectedBloodType = value;
                     });
                   },
                   validator: (value) => value == null ? "Please select your blood type" : null,

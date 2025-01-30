@@ -3,16 +3,19 @@ import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
 
 class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.red,
+        iconTheme: IconThemeData(color: Colors.white),
         elevation: 0,
         title: Text(
           "Settings",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),

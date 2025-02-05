@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../pages/widgets/profile_summary.dart';
 import '../pages/widgets/urgent_requests.dart';
 import '../pages/widgets/quick_actions.dart';
-import '../pages/widgets/available_slots.dart';
 import '../pages/widgets/achievements.dart';
 import '../pages/widgets/support_section.dart';
+import '../pages/widgets/Events.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   @override
@@ -18,8 +18,8 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     ProfileSummary(),
     UrgentRequests(),
     QuickActions(),
-    AvailableSlots(),
-    Achievements(),
+    Events(),
+    Achievements(donations: 12),
     SupportSection(),
   ];
 
@@ -27,7 +27,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     "Profile & Eligibility",
     "Urgent Requests",
     "Quick Actions",
-    "Available Slots",
+    "Events",
     "Achievements",
     "Support Section",
   ];
@@ -68,7 +68,8 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.volunteer_activism, size: 50, color: Colors.white),
+                    Icon(Icons.volunteer_activism,
+                        size: 50, color: Colors.white),
                     SizedBox(height: 10),
                     Text(
                       "Donor Dashboard",
@@ -110,7 +111,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
             ),
             ListTile(
               leading: Icon(Icons.event_available, color: Colors.red),
-              title: Text("Available Slots"),
+              title: Text("Events"),
               onTap: () {
                 setState(() {
                   _currentIndex = 3;

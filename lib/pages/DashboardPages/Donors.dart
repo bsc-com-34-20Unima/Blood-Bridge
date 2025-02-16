@@ -5,6 +5,8 @@ void main() {
 }
 
 class BloodBridgeApp extends StatelessWidget {
+  const BloodBridgeApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -23,6 +25,8 @@ class Donor {
 }
 
 class DonorsPage extends StatefulWidget {
+  const DonorsPage({super.key});
+
   @override
   _DonorsPageState createState() => _DonorsPageState();
 }

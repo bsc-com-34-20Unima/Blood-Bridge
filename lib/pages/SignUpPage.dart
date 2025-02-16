@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+
   @override
   _SignUpPageState createState() => _SignUpPageState();
 }
@@ -152,8 +154,8 @@ class _SignUpPageState extends State<SignUpPage> {
                         );
                       }
                     },
-                    child: Text("Sign Up"),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    child: Text("Sign Up"),
                   ),
                 ),
 

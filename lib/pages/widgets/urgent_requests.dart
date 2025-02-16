@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 
 class UrgentRequests extends StatelessWidget {
+  const UrgentRequests({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -64,10 +66,10 @@ class UrgentRequests extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {},
-            child: Text('Respond Now'),
             style: TextButton.styleFrom(
               foregroundColor: Colors.red,
             ),
+            child: Text('Respond Now'),
           ),
         ],
       ),

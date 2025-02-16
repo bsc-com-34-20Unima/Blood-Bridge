@@ -7,6 +7,8 @@ import '../pages/widgets/support_section.dart';
 import '../pages/widgets/Events.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
+  const DonorDashboardScreen({super.key});
+
   @override
   _DonorDashboardScreenState createState() => _DonorDashboardScreenState();
 }

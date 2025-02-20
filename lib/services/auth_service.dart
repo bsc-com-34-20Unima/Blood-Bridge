@@ -1,47 +1,45 @@
-// lib/services/auth_service.dart
-import 'dart:async';
-import '../models/user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  // Simulate user database
-  final Map<String, Map<String, String>> _users = {
-    'donor@bloodbridge.com': {
-      'id': '1',
-      'password': '123456',
-      'role': 'donor'
-    },
-    'hospital@bloodbridge.com': {
-      'id': '2',
-      'password': '123456',
-      'role': 'hospital'
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Donor Registration
+  Future<void> registerDonor({
+    required String name,
+    required String email,
+    required String phone,
+    required String password,
+    required String bloodType,
+  }) async {
+    try {
+      // Create donor in Firebase Authentication
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Store donor details in Firestore
+      await _firestore.collection('donors').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
+        'name': name,
+        'email': email,
+        'phone': phone,
+        'bloodType': bloodType,
+        'role': 'donor',
+      });
+    } catch (e) {
+      throw Exception("Registration failed: ${e.toString()}");
     }
-  };
-
-  Future<User> login(String email, String password) async {
-    // Simulate network delay
-    await Future.delayed(Duration(seconds: 1));
-
-    // Check if user exists
-    final userData = _users[email.toLowerCase()];
-    if (userData == null) {
-      throw Exception('User not found');
-    }
-
-    // Verify password
-    if (userData['password'] != password) {
-      throw Exception('Invalid password');
-    }
-
-    // Create user object
-    return User.fromJson({
-      'id': userData['id']!,
-      'email': email,
-      'role': userData['role']!,
-    });
   }
 
-  Future<void> logout() async {
-    // Implement logout logic here
-    await Future.delayed(Duration(milliseconds: 500));
+  // ✅ Login Function (Returns UserCredential)
+  Future<UserCredential> login(String email, String password) async {
+    try {
+      return await _auth.signInWithEmailAndPassword(email: email, password: password);
+    } catch (e) {
+      throw Exception("Login failed: ${e.toString()}");
+    }
   }
 }

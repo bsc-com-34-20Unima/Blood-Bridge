@@ -10,6 +10,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -22,45 +23,64 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;  // Added for password visibility
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        UserCredential userCredential = await _authService.login(
-          _emailController.text,
-          _passwordController.text,
-        );
+  if (_formKey.currentState!.validate()) {
+    setState(() => _isLoading = true);
+    try {
+      UserCredential userCredential = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
 
-        User? user = userCredential.user;
+      User? user = userCredential.user;
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        if (user != null) {
-          DocumentSnapshot donorDoc = await FirebaseFirestore.instance
-              .collection("donors")
-              .doc(user.uid)
-              .get();
-
-          if (!mounted) return;
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => donorDoc.exists
-                  ? DonorDashboardScreen()
-                  : HospitalDashboard(),
-            ),
-          );
+      if (user != null) {
+        print("User authenticated with UID: ${user.uid}");
+        
+        // Check donor
+        DocumentSnapshot donorDoc = await FirebaseFirestore.instance
+            .collection('donors')
+            .doc(user.uid)
+            .get();
+        print("Donor exists: ${donorDoc.exists}");
+        
+        // Check hospital
+        DocumentSnapshot hospitalDoc = await FirebaseFirestore.instance
+            .collection('hospitals')
+            .doc(user.uid)
+            .get();
+        print("Hospital exists: ${hospitalDoc.exists}");
+        
+        UserRole userRole = await _authService.getUserRole(user.uid);
+        print("User role determined: $userRole");
+        
+        if (userRole == UserRole.unknown) {
+          throw Exception("User not found in system");
         }
-      } catch (e) {
+
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => userRole == UserRole.donor
+                ? DonorDashboardScreen()
+                : HospitalDashboard(),
+          ),
         );
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
       }
+    } catch (e) {
+      print("Login error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {

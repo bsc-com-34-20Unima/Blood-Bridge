@@ -38,7 +38,7 @@ class _DonorsPageState extends State<DonorsPage> {
     Donor(name: "Michael Lee", bloodGroup: "B+", lastDonation: "20 Nov 2024"),
     Donor(name: "Lisa Ray", bloodGroup: "AB-", lastDonation: "10 Oct 2024"),
   ];
-  
+
   List<Donor> filteredDonors = [];
 
   @override
@@ -64,7 +64,7 @@ class _DonorsPageState extends State<DonorsPage> {
         filteredDonors = List.from(donors);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Donor deleted"))
+        SnackBar(content: Text("Donor deleted")),
       );
     }
   }
@@ -99,7 +99,7 @@ class _DonorsPageState extends State<DonorsPage> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               },
               child: Text("Cancel"),
             ),
@@ -111,7 +111,7 @@ class _DonorsPageState extends State<DonorsPage> {
                   donors[index].lastDonation = lastDonationController.text;
                   filteredDonors = List.from(donors);
                 });
-                Navigator.pop(context); // Close the dialog
+                Navigator.pop(context);
               },
               child: Text("Save"),
             ),
@@ -152,46 +152,44 @@ class _DonorsPageState extends State<DonorsPage> {
                     margin: EdgeInsets.symmetric(vertical: 8),
                     child: Padding(
                       padding: EdgeInsets.all(15),
-                      child: Column(
+                      child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                donor.bloodGroup,
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  donor.bloodGroup,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                donor.name,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                SizedBox(height: 5),
+                                Text(
+                                  donor.name,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                            ],
+                                SizedBox(height: 5),
+                                Text(
+                                  "Last Donation Date: ${donor.lastDonation}",
+                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                                ),
+                              ],
+                            ),
                           ),
-                          SizedBox(height: 5),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Last Donation Date: ${donor.lastDonation}",
-                                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                              ),
-                              PopupMenuButton<String>(
-                                onSelected: (value) => _onMenuSelected(value, index),
-                                itemBuilder: (context) => [
-                                  PopupMenuItem(value: "Update", child: Text("Update")),
-                                  PopupMenuItem(value: "Delete", child: Text("Delete")),
-                                ],
-                                icon: Icon(Icons.more_vert),
-                              ),
+                          PopupMenuButton<String>(
+                            onSelected: (value) => _onMenuSelected(value, index),
+                            itemBuilder: (context) => [
+                              PopupMenuItem(value: "Update", child: Text("Update")),
+                              PopupMenuItem(value: "Delete", child: Text("Delete")),
                             ],
+                            icon: Icon(Icons.more_vert),
                           ),
                         ],
                       ),

@@ -11,16 +11,41 @@ class BloodBridgeApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: BloodInventoryPage(),
+      home: HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Blood Bridge App"),
+        backgroundColor: Colors.redAccent,
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BloodInventoryPage()),
+            );
+          },
+          child: Text("View Blood Inventory"),
+        ),
+      ),
     );
   }
 }
 
 class BloodInventory {
   final String bloodGroup;
-  int availableUnits; // Mutable now
-  String status; // "Sufficient" or "Critical Shortage"
-  
+  int availableUnits;
+  String status;
+
   BloodInventory({
     required this.bloodGroup,
     required this.availableUnits,
@@ -29,7 +54,13 @@ class BloodInventory {
 
   void updateUnits(int newUnits) {
     availableUnits = newUnits;
-    status = availableUnits > 0 ? "Sufficient" : "Critical Shortage";
+    if (availableUnits > 5) {
+      status = "Sufficient";
+    } else if (availableUnits > 2) {
+      status = "Near Critical";
+    } else {
+      status = "Critical Shortage";
+    }
   }
 }
 
@@ -44,9 +75,9 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
   List<BloodInventory> bloodInventoryList = [
     BloodInventory(bloodGroup: "A+", availableUnits: 10, status: "Sufficient"),
     BloodInventory(bloodGroup: "O-", availableUnits: 1, status: "Critical Shortage"),
-    BloodInventory(bloodGroup: "B+", availableUnits: 5, status: "Sufficient"),
+    BloodInventory(bloodGroup: "B+", availableUnits: 5, status: "Near Critical"),
     BloodInventory(bloodGroup: "AB-", availableUnits: 0, status: "Critical Shortage"),
-    BloodInventory(bloodGroup: "A-", availableUnits: 3, status: "Sufficient"),
+    BloodInventory(bloodGroup: "A-", availableUnits: 3, status: "Near Critical"),
     BloodInventory(bloodGroup: "O+", availableUnits: 8, status: "Sufficient"),
     BloodInventory(bloodGroup: "B-", availableUnits: 2, status: "Critical Shortage"),
     BloodInventory(bloodGroup: "AB+", availableUnits: 6, status: "Sufficient"),
@@ -92,12 +123,21 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Blood Inventory"),
+        backgroundColor: Colors.redAccent,
+      ),
       body: Padding(
         padding: EdgeInsets.all(10),
         child: ListView.builder(
           itemCount: bloodInventoryList.length,
           itemBuilder: (context, index) {
             final bloodInventory = bloodInventoryList[index];
+            Color statusColor = bloodInventory.status == "Sufficient"
+                ? Colors.green
+                : bloodInventory.status == "Near Critical"
+                    ? Colors.orange
+                    : Colors.red;
             return Card(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -120,62 +160,48 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
                             color: Colors.red,
                           ),
                         ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              "Units: ${bloodInventory.availableUnits}",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            SizedBox(height: 5),
-                            Text(
-                              "Status: ${bloodInventory.status}",
-                              style: TextStyle(fontSize: 14),
-                            ),
-                          ],
+                        PopupMenuButton<String>(
+                          onSelected: (value) {
+                            if (value == 'Update') {
+                              _updateBloodUnits(index);
+                            }
+                          },
+                          itemBuilder: (BuildContext context) {
+                            return {'Update'}.map((String choice) {
+                              return PopupMenuItem<String>(
+                                value: choice,
+                                child: Text(choice),
+                              );
+                            }).toList();
+                          },
+                          icon: Icon(Icons.more_vert),
                         ),
                       ],
                     ),
                     SizedBox(height: 10),
-                    // Display the status symbol
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Icon(
-                          bloodInventory.status == "Sufficient"
-                              ? Icons.check_circle
-                              : Icons.warning,
-                          color: bloodInventory.status == "Sufficient"
-                              ? Colors.green
-                              : Colors.red,
-                          size: 30,
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 10),
-                    // Three dots menu for Update (no delete option)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: PopupMenuButton<String>(
-                        onSelected: (value) {
-                          if (value == 'Update') {
-                            _updateBloodUnits(index);
-                          }
-                        },
-                        itemBuilder: (BuildContext context) {
-                          return {'Update'}
-                              .map((String choice) {
-                            return PopupMenuItem<String>(
-                              value: choice,
-                              child: Text(choice),
-                            );
-                          }).toList();
-                        },
-                        icon: Icon(Icons.more_vert),
+                    Text(
+                      "Units: ${bloodInventory.availableUnits}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
                       ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          "Status: ",
+                          style: TextStyle(
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          bloodInventory.status,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: statusColor,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

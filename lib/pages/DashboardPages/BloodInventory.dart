@@ -22,10 +22,6 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Blood Bridge App"),
-        backgroundColor: Colors.redAccent,
-      ),
       body: Center(
         child: ElevatedButton(
           onPressed: () {
@@ -123,10 +119,10 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Blood Inventory"),
-        backgroundColor: Colors.redAccent,
-      ),
+      // appBar: AppBar(
+      //   // title: Text("Blood Inventory"),
+      //   backgroundColor: Colors.redAccent,
+      // ),
       body: Padding(
         padding: EdgeInsets.all(10),
         child: ListView.builder(

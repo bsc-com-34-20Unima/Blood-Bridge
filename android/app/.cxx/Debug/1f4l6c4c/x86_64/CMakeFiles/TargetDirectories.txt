@@ -1,0 +1,2 @@
+C:/Users/Samuel Njoka/Desktop/New folder/New folder/Blood-Bridge/android/app/.cxx/Debug/1f4l6c4c/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Samuel Njoka/Desktop/New folder/New folder/Blood-Bridge/android/app/.cxx/Debug/1f4l6c4c/x86_64/CMakeFiles/rebuild_cache.dir

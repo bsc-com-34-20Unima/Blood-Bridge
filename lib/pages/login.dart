@@ -1,20 +1,16 @@
-// lib/screens/login_screen.dart
-import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
 import 'package:flutter/material.dart';
-// Update imports in login_screen.dart
-import '../models/user.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/auth_service.dart';
 
-// Theme data for consistent styling across the app
-// lib/theme/app_theme.dart
-import 'package:flutter/material.dart';
-
-
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
+  // ignore: library_private_types_in_public_api
   _LoginScreenState createState() => _LoginScreenState();
 }
 
@@ -24,36 +20,67 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _authService = AuthService();
   bool _isLoading = false;
+  bool _isPasswordVisible = false;  // Added for password visibility
 
   Future<void> _login() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        final user = await _authService.login(
-          _emailController.text,
-          _passwordController.text,
-        );
+  if (_formKey.currentState!.validate()) {
+    setState(() => _isLoading = true);
+    try {
+      UserCredential userCredential = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      User? user = userCredential.user;
+
+      if (!mounted) return;
+
+      if (user != null) {
+        print("User authenticated with UID: ${user.uid}");
         
+        // Check donor
+        DocumentSnapshot donorDoc = await FirebaseFirestore.instance
+            .collection('donors')
+            .doc(user.uid)
+            .get();
+        print("Donor exists: ${donorDoc.exists}");
+        
+        // Check hospital
+        DocumentSnapshot hospitalDoc = await FirebaseFirestore.instance
+            .collection('hospitals')
+            .doc(user.uid)
+            .get();
+        print("Hospital exists: ${hospitalDoc.exists}");
+        
+        UserRole userRole = await _authService.getUserRole(user.uid);
+        print("User role determined: $userRole");
+        
+        if (userRole == UserRole.unknown) {
+          throw Exception("User not found in system");
+        }
+
         if (!mounted) return;
-        
-        // Navigate based on user role
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => user.role == UserRole.donor
+            builder: (context) => userRole == UserRole.donor
                 ? DonorDashboardScreen()
                 : HospitalDashboard(),
           ),
         );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
       }
+    } catch (e) {
+      print("Login error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -102,11 +129,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Password Field
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible,  // Toggle based on _isPasswordVisible
                   decoration: InputDecoration(
                     labelText: "Password",
                     border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.visibility),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible 
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -134,6 +172,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: EdgeInsets.symmetric(vertical: 15),
+                    ),
                     child: _isLoading
                         ? SizedBox(
                             height: 20,
@@ -144,10 +186,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             "Log In",
                             style: TextStyle(color: Colors.white),
                           ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                    ),
                   ),
                 ),
 
@@ -188,36 +226,5 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-}
-
-class AppTheme {
-  static ThemeData get theme {
-    return ThemeData(
-      primaryColor: Colors.red,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: Colors.red,
-        primary: Colors.red,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: 15),
-        ),
-      ),
-      cardTheme: CardTheme(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.red),
-        ),
-      ),
-    );
   }
 }

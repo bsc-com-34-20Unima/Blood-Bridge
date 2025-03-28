@@ -52,7 +52,7 @@ class _BloodRequestPageState extends State<BloodRequests> {
                           child: Text(type),
                         ))
                     .toList(),
-                onChanged: (value) => _bloodType = value as String?,
+                onChanged: (value) => _bloodType = value,
                 validator: (value) => value == null ? 'Please select a blood type' : null,
               ),
               SizedBox(height: 16),

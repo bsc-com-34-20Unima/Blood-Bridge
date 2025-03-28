@@ -1,21 +1,91 @@
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
+import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/auth_service.dart';
 
-class LoginPage extends StatefulWidget {
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
-  _LoginPageState createState() => _LoginPageState();
+  // ignore: library_private_types_in_public_api
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+  bool _isPasswordVisible = false;  // Added for password visibility
+
+  Future<void> _login() async {
+  if (_formKey.currentState!.validate()) {
+    setState(() => _isLoading = true);
+    try {
+      UserCredential userCredential = await _authService.login(
+        _emailController.text,
+        _passwordController.text,
+      );
+
+      User? user = userCredential.user;
+
+      if (!mounted) return;
+
+      if (user != null) {
+        print("User authenticated with UID: ${user.uid}");
+        
+        // Check donor
+        DocumentSnapshot donorDoc = await FirebaseFirestore.instance
+            .collection('donors')
+            .doc(user.uid)
+            .get();
+        print("Donor exists: ${donorDoc.exists}");
+        
+        // Check hospital
+        DocumentSnapshot hospitalDoc = await FirebaseFirestore.instance
+            .collection('hospitals')
+            .doc(user.uid)
+            .get();
+        print("Hospital exists: ${hospitalDoc.exists}");
+        
+        UserRole userRole = await _authService.getUserRole(user.uid);
+        print("User role determined: $userRole");
+        
+        if (userRole == UserRole.unknown) {
+          throw Exception("User not found in system");
+        }
+
+        if (!mounted) return;
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => userRole == UserRole.donor
+                ? DonorDashboardScreen()
+                : HospitalDashboard(),
+          ),
+        );
+      }
+    } catch (e) {
+      print("Login error: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SingleChildScrollView( // Make the content scrollable
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Form(
@@ -23,12 +93,16 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.1), // Spacer
+                SizedBox(height: MediaQuery.of(context).size.height * 0.1),
                 Icon(Icons.bloodtype, size: 100, color: Colors.red),
                 SizedBox(height: 10),
                 Text(
                   "BloodBridge",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
                 ),
                 SizedBox(height: 30),
 
@@ -55,11 +129,22 @@ class _LoginPageState extends State<LoginPage> {
                 // Password Field
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible,  // Toggle based on _isPasswordVisible
                   decoration: InputDecoration(
                     labelText: "Password",
                     border: OutlineInputBorder(),
-                    suffixIcon: Icon(Icons.visibility),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible 
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
+                    ),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -86,19 +171,21 @@ class _LoginPageState extends State<LoginPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        Navigator.push(
-                          context, 
-                          MaterialPageRoute(builder: (context)=>HospitalDashboard())
-                          );
-                      }
-                    },
-                    child: Text("Log In",
-                    style: TextStyle(color: Colors.white),
+                    onPressed: _isLoading ? null : _login,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: EdgeInsets.symmetric(vertical: 15),
                     ),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, ),
-                 
+                    child: _isLoading
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white),
+                          )
+                        : Text(
+                            "Log In",
+                            style: TextStyle(color: Colors.white),
+                          ),
                   ),
                 ),
 
@@ -117,17 +204,27 @@ class _LoginPageState extends State<LoginPage> {
                       },
                       child: Text(
                         "Sign Up",
-                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 10), // Prevent overflow
+                SizedBox(height: 10),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 }

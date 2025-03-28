@@ -149,7 +149,10 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Delete"),
+              child: Text("Delete" ,
+               style: TextStyle(
+                color: Colors.white
+              ),),
               onPressed: () {
                 // Handle account deletion
                 Navigator.pop(context);
@@ -179,7 +182,12 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Logout"),
+              child: Text(
+                "Logout",
+                style: TextStyle(
+                  color: Colors.white
+                ),
+                ),
               onPressed: () {
                 // Handle logout functionality
                 Navigator.pop(context);

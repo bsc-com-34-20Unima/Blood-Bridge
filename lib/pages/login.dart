@@ -1,4 +1,5 @@
 import 'package:bloodbridge/pages/SignUpPage.dart';
+import 'package:bloodbridge/pages/forgetpassword.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
 import 'package:flutter/material.dart';
@@ -111,7 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   decoration: InputDecoration(
                     labelText: "Email or Phone",
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(12)
+                    ),
+             
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -132,7 +136,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: !_isPasswordVisible,  // Toggle based on _isPasswordVisible
                   decoration: InputDecoration(
                     labelText: "Password",
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                             borderRadius: BorderRadius.circular(12)
+                    ),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _isPasswordVisible 
@@ -162,7 +168,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => ForgotPasswordPage()),
+                        );
+                    },
                     child: Text("Forgot Password?"),
                   ),
                 ),
@@ -184,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           )
                         : Text(
                             "Log In",
-                            style: TextStyle(color: Colors.white),
+                            style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                   ),
                 ),

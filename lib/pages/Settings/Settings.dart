@@ -2,8 +2,16 @@ import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _receiveNotifications = true;
+  bool _eventReminders = false;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +49,8 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>EditProfilePage()));
+                  MaterialPageRoute(builder: (context) => EditProfilePage()),
+                );
               },
             ),
             ListTile(
@@ -52,7 +61,8 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>ChangePasswordPage()));
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage()),
+                );
               },
             ),
 
@@ -71,18 +81,22 @@ class SettingsPage extends StatelessWidget {
               activeColor: Colors.red,
               title: Text("Receive Notifications"),
               subtitle: Text("Enable or disable all notifications"),
-              value: true,
+              value: _receiveNotifications,
               onChanged: (bool value) {
-                // Toggle notifications setting
+                setState(() {
+                  _receiveNotifications = value;
+                });
               },
             ),
             SwitchListTile(
               activeColor: Colors.red,
               title: Text("Event Reminders"),
               subtitle: Text("Get reminders for upcoming events"),
-              value: false,
+              value: _eventReminders,
               onChanged: (bool value) {
-                // Toggle event reminders setting
+                setState(() {
+                  _eventReminders = value;
+                });
               },
             ),
 
@@ -149,10 +163,10 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Delete" ,
-               style: TextStyle(
-                color: Colors.white
-              ),),
+              child: Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () {
                 // Handle account deletion
                 Navigator.pop(context);
@@ -184,10 +198,8 @@ class SettingsPage extends StatelessWidget {
               ),
               child: Text(
                 "Logout",
-                style: TextStyle(
-                  color: Colors.white
-                ),
-                ),
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () {
                 // Handle logout functionality
                 Navigator.pop(context);

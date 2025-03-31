@@ -6,9 +6,9 @@ class NearbyDonationCentersView extends StatelessWidget {
   final Position userLocation;
 
   const NearbyDonationCentersView({
-    Key? key,
+    super.key,
     required this.userLocation,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

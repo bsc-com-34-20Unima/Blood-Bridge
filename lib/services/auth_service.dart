@@ -1,17 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 
-enum UserRole {
-  donor,
-  hospital,
-  unknown
-}
+enum UserRole { donor, hospital, unknown }
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Donor Registration
   Future<void> registerDonor({
     required String name,
     required String email,
@@ -20,66 +16,95 @@ class AuthService {
     required String bloodType,
   }) async {
     try {
-      // Create donor in Firebase Authentication
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      // Input validation
+      if (bloodType.isEmpty) throw AuthFailure(message: "Blood type is required");
+
+      // Get location
+      final position = await getUserPosition();
+
+      // Create user
+      final userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // Store donor details in Firestore
+      // Save to Firestore
       await _firestore.collection('donors').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'name': name,
         'email': email,
         'phone': phone,
         'bloodType': bloodType,
-        'role': 'donor',
+        'role': UserRole.donor.name,
+        'location': GeoPoint(position.latitude, position.longitude),
         'createdAt': FieldValue.serverTimestamp(),
+        'lastActive': FieldValue.serverTimestamp(),
       });
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(code: e.code, message: e.message ?? 'Authentication failed');
     } catch (e) {
-      throw Exception("Registration failed: ${e.toString()}");
+      throw AuthFailure(message: 'Registration failed: ${e.toString()}');
     }
   }
 
-  // Login Function (Returns UserCredential)
+  Future<Position> getUserPosition() async {
+    try {
+      final isEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isEnabled) throw Exception('Enable location services');
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permission denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions permanently denied');
+      }
+
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 20),
+        ),
+      );
+    } catch (e) {
+      throw AuthFailure(message: 'Location error: ${e.toString()}');
+    }
+  }
+
   Future<UserCredential> login(String email, String password) async {
     try {
-      return await _auth.signInWithEmailAndPassword(email: email, password: password);
-    } catch (e) {
-      throw Exception("Login failed: ${e.toString()}");
+      return await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      throw AuthFailure(code: e.code, message: e.message ?? 'Login failed');
     }
   }
 
-  // New Function to Get User Role
   Future<UserRole> getUserRole(String uid) async {
     try {
-      // Check if user is a donor
-      DocumentSnapshot donorDoc = await _firestore.collection('donors').doc(uid).get();
-      
-      if (donorDoc.exists) {
-        return UserRole.donor;
-      }
-      
-      // Check if user is a hospital
-      DocumentSnapshot hospitalDoc = await _firestore.collection('hospitals').doc(uid).get();
-      
-      if (hospitalDoc.exists) {
-        return UserRole.hospital;
-      }
-      
-      return UserRole.unknown;
+      final snapshot = await _firestore.collection('donors').doc(uid).get();
+      return snapshot.exists ? UserRole.donor : UserRole.unknown;
     } catch (e) {
-      throw Exception("Error determining user role: ${e.toString()}");
+      throw AuthFailure(message: 'Role check failed: ${e.toString()}');
     }
   }
 
-  // Get Current User
-  User? getCurrentUser() {
-    return _auth.currentUser;
-  }
+  User? getCurrentUser() => _auth.currentUser;
 
-  // Sign Out
-  Future<void> signOut() async {
-    await _auth.signOut();
-  }
+  Future<void> signOut() async => await _auth.signOut();
+}
+
+class AuthFailure implements Exception {
+  final String? code;
+  final String message;
+  AuthFailure({this.code, required this.message});
+
+  @override
+  String toString() => message;
 }

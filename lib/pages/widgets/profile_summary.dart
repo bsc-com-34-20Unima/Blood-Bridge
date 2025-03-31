@@ -5,6 +5,8 @@ import 'package:bloodbridge/pages/detail_pages/donation_importance.dart';
 import 'package:flutter/material.dart';
 
 class ProfileSummary extends StatelessWidget {
+  const ProfileSummary({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

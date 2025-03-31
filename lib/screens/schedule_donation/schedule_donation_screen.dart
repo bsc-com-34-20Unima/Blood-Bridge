@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'donation_form.dart';
 
 class ScheduleDonationScreen extends StatelessWidget {
+  const ScheduleDonationScreen({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

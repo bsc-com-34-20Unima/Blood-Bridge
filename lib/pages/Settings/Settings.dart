@@ -1,20 +1,31 @@
 import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
+import 'package:bloodbridge/services/auth_service.dart';
+import 'package:bloodbridge/pages/login.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _receiveNotifications = true;
+  bool _eventReminders = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.red,
+        iconTheme: IconThemeData(color: Colors.white),
         elevation: 0,
         title: Text(
           "Settings",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -70,18 +81,22 @@ class SettingsPage extends StatelessWidget {
               activeColor: Colors.red,
               title: Text("Receive Notifications"),
               subtitle: Text("Enable or disable all notifications"),
-              value: true,
+              value: _receiveNotifications,
               onChanged: (bool value) {
-                // Toggle notifications setting
+                setState(() {
+                  _receiveNotifications = value;
+                });
               },
             ),
             SwitchListTile(
               activeColor: Colors.red,
               title: Text("Event Reminders"),
               subtitle: Text("Get reminders for upcoming events"),
-              value: false,
+              value: _eventReminders,
               onChanged: (bool value) {
-                // Toggle event reminders setting
+                setState(() {
+                  _eventReminders = value;
+                });
               },
             ),
 
@@ -148,7 +163,10 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Delete"),
+              child: Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () {
                 // Handle account deletion
                 Navigator.pop(context);
@@ -170,9 +188,7 @@ class SettingsPage extends StatelessWidget {
           actions: [
             TextButton(
               child: Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(

@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 
 class BloodTypeInfo extends StatelessWidget {
+  const BloodTypeInfo({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

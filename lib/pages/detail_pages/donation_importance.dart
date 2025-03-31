@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 
 class DonationImportance extends StatelessWidget {
+  const DonationImportance({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

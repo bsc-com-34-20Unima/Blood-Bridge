@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class CalendarSchedulingView extends StatefulWidget {
+  const CalendarSchedulingView({super.key});
+
   @override
   _CalendarSchedulingViewState createState() => _CalendarSchedulingViewState();
 }
@@ -82,10 +84,10 @@ class _CalendarSchedulingViewState extends State<CalendarSchedulingView> {
                   );
                   Navigator.pop(context);
                 },
-                child: Text('Schedule Appointment'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
                 ),
+                child: Text('Schedule Appointment'),
               ),
           ],
         ],
@@ -100,11 +102,11 @@ class TimeSlotButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const TimeSlotButton({
-    Key? key,
+    super.key,
     required this.time,
     required this.isSelected,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

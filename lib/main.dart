@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/dashboard': (context) => DashboardPage(),
         '/bloodInventory': (context) => BloodInventoryPage(),
-        '/donors': (context) => DonorsPage(), // Updated this line
+        '/donors': (context) => DonorsPage(),
         '/requests': (context) => BloodRequests(),
         '/events': (context) => EventsPage(),
       },

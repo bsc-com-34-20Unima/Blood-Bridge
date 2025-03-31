@@ -5,208 +5,196 @@ class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
 
   @override
-  _SignUpPageState createState() => _SignUpPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
 class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final _controllers = {
+    'name': TextEditingController(),
+    'email': TextEditingController(),
+    'phone': TextEditingController(),
+    'password': TextEditingController(),
+    'confirmPassword': TextEditingController(),
+  };
   String? _selectedBloodType;
   bool _isLoading = false;
 
   Future<void> _register() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() => _isLoading = true);
-      try {
-        await _authService.registerDonor(
-          name: _nameController.text,
-          email: _emailController.text,
-          phone: _phoneController.text,
-          password: _passwordController.text,
-          bloodType: _selectedBloodType!,
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Account created successfully!")),
-        );
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${e.toString()}")),
-        );
-      } finally {
-        setState(() => _isLoading = false);
-      }
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedBloodType == null) {
+      _showError('Please select your blood type');
+      return;
     }
+
+    setState(() => _isLoading = true);
+    try {
+      await _authService.registerDonor(
+        name: _controllers['name']!.text.trim(),
+        email: _controllers['email']!.text.trim(),
+        phone: _controllers['phone']!.text.trim(),
+        password: _controllers['password']!.text.trim(),
+        bloodType: _selectedBloodType!,
+      );
+
+      if (mounted) {
+        _showSuccess('Account created successfully!');
+        Navigator.pop(context);
+      }
+    } on AuthFailure catch (e) {
+      if (mounted) _showError(e.message);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Icon(Icons.bloodtype, size: 100, color: Colors.red),
-                SizedBox(height: 10),
-                Text("Create an Account",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.red)),
-                SizedBox(height: 30),
-
-                // Full Name
-                TextFormField(
-                  controller: _nameController,
-                  decoration: InputDecoration(labelText: "Full Name", border: OutlineInputBorder()),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? "Please enter your full name" : null,
+      appBar: AppBar(title: const Text('Donor Registration'), backgroundColor: Colors.red[700],),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Icon(Icons.bloodtype, size: 100, color: Colors.red),
+              const SizedBox(height: 20),
+              _buildTextFormField(
+                'name',
+                'Full Name',
+                validator: (value) => value!.isEmpty ? 'Required' : null,
+              ),
+              _buildTextFormField(
+                'email',
+                'Email',
+                validator: (value) =>
+                    !value!.contains('@') ? 'Invalid email' : null,
+                keyboardType: TextInputType.emailAddress,
+              ),
+              _buildTextFormField(
+                'phone',
+                'Phone Number',
+                validator: (value) =>
+                    value!.length < 8 ? 'Too short' : null,
+                keyboardType: TextInputType.phone,
+              ),
+              _buildTextFormField(
+                'password',
+                'Password',
+                obscureText: true,
+                validator: (value) =>
+                    value!.length < 6 ? 'Minimum 6 characters' : null,
+              ),
+              _buildTextFormField(
+                'confirmPassword',
+                'Confirm Password',
+                obscureText: true,
+                validator: (value) => value != _controllers['password']!.text
+                    ? 'Passwords don\'t match'
+                    : null,
+              ),
+              const SizedBox(height: 16),
+              _buildBloodTypeDropdown(),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: Colors.red,
                 ),
-                SizedBox(height: 20),
-
-                // Email
-                TextFormField(
-                  controller: _emailController,
-                  decoration: InputDecoration(labelText: "Email", border: OutlineInputBorder()),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter your email";
-                    }
-                    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-                      return "Enter a valid email";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-
-                // Phone
-                TextFormField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(labelText: "Phone Number", border: OutlineInputBorder()),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter your phone number";
-                    }
-                    if (!RegExp(r'^\d{10}$').hasMatch(value)) {
-                      return "Enter a valid phone number";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-
-                // Password
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: "Password", 
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please enter a password";
-                    }
-                    if (value.length < 6) {
-                      return "Password must be at least 6 characters long";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-
-                // Confirm Password
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: InputDecoration(
-                    labelText: "Confirm Password", 
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return "Please confirm your password";
-                    }
-                    if (value != _passwordController.text) {
-                      return "Passwords do not match";
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 20),
-
-                // Blood Type Dropdown
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(border: OutlineInputBorder()),
-                  items: ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]
-                      .map((bloodType) => DropdownMenuItem(value: bloodType, child: Text(bloodType)))
-                      .toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedBloodType = value;
-                    });
-                  },
-                  validator: (value) => value == null ? "Please select your blood type" : null,
-                  hint: Text("Select Blood Type"),
-                ),
-                SizedBox(height: 20),
-
-                // Sign Up Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      padding: EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: _isLoading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(color: Colors.white),
-                          )
-                        : Text(
-                            "Sign Up",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                  ),
-                ),
-
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Already have an account? "),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Text("Log In",
-                          style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text(
+                        'REGISTER',
+                        style: TextStyle(fontSize: 16),
+                      ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
+  Widget _buildTextFormField(
+    String key,
+    String label, {
+    bool obscureText = false,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: _controllers[key],
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          labelText: label,
+          border: const OutlineInputBorder(),
+        ),
+        validator: validator,
+        keyboardType: keyboardType,
+      ),
+    );
+  }
+
+  Widget _buildBloodTypeDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedBloodType,
+      items: const [
+        'A+',
+        'A-',
+        'B+',
+        'B-',
+        'AB+',
+        'AB-',
+        'O+',
+        'O-',
+      ].map((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
+      onChanged: (String? newValue) {
+        setState(() => _selectedBloodType = newValue);
+      },
+      decoration: const InputDecoration(
+        labelText: 'Blood Type',
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) => value == null ? 'Required' : null,
+    );
+  }
+
   @override
   void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 }

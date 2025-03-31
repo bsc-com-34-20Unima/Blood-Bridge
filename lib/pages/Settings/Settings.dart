@@ -1,6 +1,8 @@
 import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
+import 'package:bloodbridge/services/auth_service.dart';
+import 'package:bloodbridge/pages/login.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -49,8 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EditProfilePage()),
-                );
+                  MaterialPageRoute(builder: (context) =>EditProfilePage()));
               },
             ),
             ListTile(
@@ -61,8 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChangePasswordPage()),
-                );
+                  MaterialPageRoute(builder: (context) =>ChangePasswordPage()));
               },
             ),
 
@@ -188,18 +188,13 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               child: Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text(
-                "Logout",
-                style: TextStyle(color: Colors.white),
-              ),
+              child: Text("Logout"),
               onPressed: () {
                 // Handle logout functionality
                 Navigator.pop(context);

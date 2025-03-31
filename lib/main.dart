@@ -1,16 +1,19 @@
 import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
-import 'package:bloodbridge/pages/DashboardPages/Donors.dart'; 
+import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
 import 'package:bloodbridge/pages/login.dart';
-import 'package:firebase_core/firebase_core.dart'; 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
+
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();  //  Firebase is initialized before app starts
+  WidgetsFlutterBinding.ensureInitialized();  // Firebase is initialized before app starts
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
+
+
   runApp(const MyApp());
 }
 

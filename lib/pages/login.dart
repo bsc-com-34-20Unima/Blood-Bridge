@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BloodBridge Login'),
+        title: const Text(' BloodBridge Login'),
         backgroundColor: Colors.red[700],
       ),
       body: SingleChildScrollView(

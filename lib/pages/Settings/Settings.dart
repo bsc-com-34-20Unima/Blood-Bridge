@@ -1,6 +1,8 @@
 import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
+import 'package:bloodbridge/services/auth_service.dart';
+import 'package:bloodbridge/pages/login.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -40,7 +42,7 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>EditProfilePage()));
+                  MaterialPageRoute(builder: (context) => EditProfilePage()));
               },
             ),
             ListTile(
@@ -51,7 +53,7 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>ChangePasswordPage()));
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage()));
               },
             ),
 
@@ -170,19 +172,43 @@ class SettingsPage extends StatelessWidget {
           actions: [
             TextButton(
               child: Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
               child: Text("Logout"),
-              onPressed: () {
-                // Handle logout functionality
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
+              onPressed: () async {
+                try {
+                  // Show loading indicator
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => Center(child: CircularProgressIndicator()),
+                  );
+                  
+                  // Perform logout
+                  await AuthService().signOut();
+                  
+                  // Close all dialogs
+                  Navigator.of(context, rootNavigator: true).pop();
+                  Navigator.of(context, rootNavigator: true).pop();
+                  
+                  // Navigate to LoginScreen and clear stack
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                    (route) => false,
+                  );
+                } catch (e) {
+                  // Close loading indicator
+                  Navigator.of(context, rootNavigator: true).pop();
+                  
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Logout failed: ${e.toString()}')),
+                  );
+                }
               },
             ),
           ],

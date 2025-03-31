@@ -67,7 +67,7 @@ class AuthService {
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 10),
+          timeLimit: Duration(seconds: 20),
         ),
       );
     } catch (e) {

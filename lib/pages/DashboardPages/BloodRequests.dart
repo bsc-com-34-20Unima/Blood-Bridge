@@ -1,105 +1,179 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:bloodbridge/services/bloodrequest_service.dart';
 
 class BloodRequests extends StatefulWidget {
   const BloodRequests({super.key});
 
   @override
-  _BloodRequestPageState createState() => _BloodRequestPageState();
+  State<BloodRequests> createState() => _BloodRequestsState();
 }
 
-class _BloodRequestPageState extends State<BloodRequests> {
+class _BloodRequestsState extends State<BloodRequests> {
+  final _requestService = BloodRequestService();
+  final _distanceController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  String? _bloodType;
-  String? _radius;
-  String? _quantity;
+  
+  String _selectedBloodType = 'A+';
+  bool _isLoading = false;
 
-  final List<String> _bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-
-  void _submitRequest() {
-    if (_formKey.currentState!.validate()) {
-      _formKey.currentState!.save();
-      // Send data to the backend
-      // Call the backend API to send a blood request
-      print('Blood Type: $_bloodType');
-      print('Quantity: $_quantity');
-      print('Radius: $_radius');
-
-      // Show a confirmation message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Blood request submitted successfully!')),
-      );
-    }
-  }
+  // Blood type color mapping for visual enhancement
+  final Map<String, Color> _bloodTypeColors = {
+    'A+': Colors.red.shade100,
+    'A-': Colors.red.shade200,
+    'B+': Colors.blue.shade100,
+    'B-': Colors.blue.shade200,
+    'AB+': Colors.green.shade100,
+    'AB-': Colors.green.shade200,
+    'O+': Colors.orange.shade100,
+    'O-': Colors.orange.shade200,
+  };
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-     
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              DropdownButtonFormField(
-                decoration: InputDecoration(
-                  labelText: 'Blood Type',
-                  border: OutlineInputBorder(),
+      appBar: AppBar(
+        title: const Text('Blood Donor Request'),
+        centerTitle: true,
+        elevation: 1,
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Blood Type Dropdown with Visual Enhancement
+                DropdownButtonFormField<String>(
+                  value: _selectedBloodType,
+                  decoration: InputDecoration(
+                    labelText: 'Blood Type Needed',
+                    filled: true,
+                    fillColor: _bloodTypeColors[_selectedBloodType],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  items: _bloodTypeColors.keys
+                      .map((type) => DropdownMenuItem(
+                            value: type,
+                            child: Text(
+                              type,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                  onChanged: (value) => setState(() => _selectedBloodType = value!),
                 ),
-                items: _bloodTypes
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ))
-                    .toList(),
-                onChanged: (value) => _bloodType = value,
-                validator: (value) => value == null ? 'Please select a blood type' : null,
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Quantity (in units)',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 20),
+
+                // Distance Input with Improved Validation
+                TextFormField(
+                  controller: _distanceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Maximum Distance',
+                    hintText: 'Enter distance in kilometers',
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    suffixText: 'km',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a distance';
+                    }
+                    final distance = double.tryParse(value);
+                    if (distance == null || distance <= 0) {
+                      return 'Please enter a valid distance';
+                    }
+                    if (distance > 500) {
+                      return 'Distance should be less than 500 km';
+                    }
+                    return null;
+                  },
                 ),
-                keyboardType: TextInputType.number,
-                onSaved: (value) => _quantity = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the quantity';
-                  }
-                  if (int.tryParse(value) == null || int.parse(value) <= 0) {
-                    return 'Enter a valid quantity';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                decoration: InputDecoration(
-                  labelText: 'Radius (in km)',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 30),
+
+                // Submit Button with Loading State
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: _isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.red),
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: _sendRequests,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Find Matching Donors',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
                 ),
-                keyboardType: TextInputType.number,
-                onSaved: (value) => _radius = value,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter the radius';
-                  }
-                  if (double.tryParse(value) == null || double.parse(value) <= 0) {
-                    return 'Enter a valid radius';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _submitRequest,
-                child: Text('Submit Request'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _sendRequests() async {
+    // Added form validation before sending requests
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await _requestService.requestDonorsByDistance(
+        hospitalId: FirebaseAuth.instance.currentUser!.uid,
+        requestedBloodType: _selectedBloodType,
+        maxDistanceKm: double.parse(_distanceController.text),
+      );
+      
+      // More descriptive success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Blood donor requests sent for $_selectedBloodType blood type!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // More detailed error handling
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send requests: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _distanceController.dispose();
+    super.dispose();
   }
 }

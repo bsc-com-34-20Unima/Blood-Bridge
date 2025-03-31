@@ -7,14 +7,12 @@ import 'package:bloodbridge/pages/login.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'firebase_options.dart';
-import 'utils/api_service.dart';  // <-- Add this import
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();  // Firebase is initialized before app starts
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
 
-  final ApiService apiService = ApiService();  // <-- Create an instance of ApiService
-  apiService.testConnection();  // <-- Test the connection on app startup
 
   runApp(const MyApp());
 }

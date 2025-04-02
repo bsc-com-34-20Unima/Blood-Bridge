@@ -5,6 +5,7 @@ import '../pages/widgets/quick_actions.dart';
 import '../pages/widgets/achievements.dart';
 import '../pages/widgets/support_section.dart';
 import '../pages/widgets/Events.dart';
+import '../pages/Settings/Settings.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});
@@ -16,7 +17,7 @@ class DonorDashboardScreen extends StatefulWidget {
 class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
+  final List _pages = [
     ProfileSummary(),
     UrgentRequests(),
     QuickActions(),
@@ -25,7 +26,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     SupportSection(),
   ];
 
-  final List<String> _titles = [
+  final List _titles = [
     "Profile & Eligibility",
     "Urgent Requests",
     "Quick Actions",
@@ -52,11 +53,15 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
               // Notifications action
             },
           ),
-          Padding(
-            padding: EdgeInsets.only(right: 10),
-            child: CircleAvatar(
-              child: Icon(Icons.person),
-            ),
+          IconButton(
+            icon: Icon(Icons.settings, color: Colors.white),
+            onPressed: () {
+              // Navigate to settings page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SettingsPage()),
+              );
+            },
           ),
         ],
       ),
@@ -70,8 +75,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.volunteer_activism,
-                        size: 50, color: Colors.white),
+                    Icon(Icons.volunteer_activism, size: 50, color: Colors.white),
                     SizedBox(height: 10),
                     Text(
                       "Donor Dashboard",

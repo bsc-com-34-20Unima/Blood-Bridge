@@ -15,6 +15,7 @@ class _SignUpPageState extends State<SignUpPage> {
     'name': TextEditingController(),
     'email': TextEditingController(),
     'phone': TextEditingController(),
+    'donations': TextEditingController(),
     'password': TextEditingController(),
     'confirmPassword': TextEditingController(),
   };
@@ -36,6 +37,7 @@ class _SignUpPageState extends State<SignUpPage> {
         phone: _controllers['phone']!.text.trim(),
         password: _controllers['password']!.text.trim(),
         bloodType: _selectedBloodType!,
+        donations: int.parse(_controllers['donations']!.text.trim()),
       );
 
       if (mounted) {
@@ -72,7 +74,10 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Donor Registration'), backgroundColor: Colors.red[700],),
+      appBar: AppBar(
+        title: const Text('Donor Registration'),
+        backgroundColor: Colors.red[700],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Form(
@@ -97,9 +102,20 @@ class _SignUpPageState extends State<SignUpPage> {
               _buildTextFormField(
                 'phone',
                 'Phone Number',
-                validator: (value) =>
-                    value!.length < 8 ? 'Too short' : null,
+                validator: (value) => value!.length < 8 ? 'Too short' : null,
                 keyboardType: TextInputType.phone,
+              ),
+              _buildTextFormField(
+                'donations',
+                'Number of Donations',
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Required';
+                  if (int.tryParse(value) == null || int.parse(value) < 0) {
+                    return 'Enter a valid number';
+                  }
+                  return null;
+                },
               ),
               _buildTextFormField(
                 'password',

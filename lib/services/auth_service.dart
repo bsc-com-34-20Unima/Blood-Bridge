@@ -7,6 +7,7 @@ enum UserRole { donor, hospital, unknown }
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
 
   Future<void> registerDonor({
     required String name,
@@ -14,6 +15,7 @@ class AuthService {
     required String phone,
     required String password,
     required String bloodType,
+    required int donations,
   }) async {
     try {
       // Input validation
@@ -35,6 +37,7 @@ class AuthService {
         'email': email,
         'phone': phone,
         'bloodType': bloodType,
+        'donations' : donations,
         'role': UserRole.donor.name,
         'location': GeoPoint(position.latitude, position.longitude),
         'createdAt': FieldValue.serverTimestamp(),

@@ -97,21 +97,6 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
     BloodInventory(bloodGroup: "AB+", availableUnits: 6, status: "Sufficient"),
   ];
 
-  /// Returns a priority value based on status.
-  /// Lower numbers indicate higher urgency.
-  int _getStatusPriority(String status) {
-    switch (status) {
-      case "Critical Shortage":
-        return 0;
-      case "Near Critical":
-        return 1;
-      case "Sufficient":
-        return 2;
-      default:
-        return 3;
-    }
-  }
-
   void _updateBloodUnits(int index) {
     TextEditingController unitsController = TextEditingController(
       text: bloodInventoryList[index].availableUnits.toString(),
@@ -142,6 +127,9 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
                 setState(() {
                   int updatedUnits = int.tryParse(unitsController.text) ?? 0;
                   bloodInventoryList[index].updateUnits(updatedUnits);
+
+                  // ✅ CHANGE HERE: Sort the list based on available units
+                  bloodInventoryList.sort((a, b) => a.availableUnits.compareTo(b.availableUnits));
                 });
                 Navigator.of(context).pop();
               },
@@ -161,9 +149,9 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Create a sorted copy of the list based on the urgency of the status.
-    List<BloodInventory> sortedList = List.from(bloodInventoryList);
-    sortedList.sort((a, b) => _getStatusPriority(a.status).compareTo(_getStatusPriority(b.status)));
+    // ✅ CHANGE HERE: Always sort before displaying (in case of rebuild)
+    List<BloodInventory> sortedList = List.from(bloodInventoryList)
+      ..sort((a, b) => a.availableUnits.compareTo(b.availableUnits));
 
     return Scaffold(
       body: Padding(
@@ -222,7 +210,6 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
                 trailing: PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'Update') {
-                      // Find the actual index in the original list based on blood group.
                       int originalIndex = bloodInventoryList.indexWhere(
                           (item) => item.bloodGroup == bloodInventory.bloodGroup);
                       _updateBloodUnits(originalIndex);

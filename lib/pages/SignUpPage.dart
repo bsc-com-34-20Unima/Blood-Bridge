@@ -31,21 +31,25 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
     try {
-      await _authService.registerDonor(
-        name: _controllers['name']!.text.trim(),
-        email: _controllers['email']!.text.trim(),
-        phone: _controllers['phone']!.text.trim(),
-        password: _controllers['password']!.text.trim(),
-        bloodType: _selectedBloodType!,
-        donations: int.parse(_controllers['donations']!.text.trim()),
-      );
+      // Create donor data map matching backend expectations
+      final donorData = {
+        'name': _controllers['name']!.text.trim(),
+        'email': _controllers['email']!.text.trim(),
+        'phone': _controllers['phone']!.text.trim(),
+        'password': _controllers['password']!.text.trim(),
+        'bloodGroup': _selectedBloodType!, 
+        'donations': int.parse(_controllers['donations']!.text.trim()),
+        'role': 'donor', // Add role to match backend expectations
+      };
+
+      await _authService.registerDonor(donorData);
 
       if (mounted) {
         _showSuccess('Account created successfully!');
         Navigator.pop(context);
       }
-    } on AuthFailure catch (e) {
-      if (mounted) _showError(e.message);
+    } catch (e) {
+      if (mounted) _showError(e.toString());
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

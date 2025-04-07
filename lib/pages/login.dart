@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bloodbridge/services/auth_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
 import 'package:geolocator/geolocator.dart';
+
+enum UserRole { donor, hospital }
+
+class AuthFailure implements Exception {
+  final String message;
+  AuthFailure({required this.message});
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,36 +25,40 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+  final String _baseUrl = 'http://10.0.2.2:3004';
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        // 1. Authenticate user
-        final userCredential = await _authService.login(
+        // 1. Authenticate user with backend
+        final authResponse = await _authenticateUser(
           _emailController.text.trim(),
           _passwordController.text.trim(),
         );
-        final user = userCredential.user;
-        if (user == null) throw AuthFailure(message: "Login failed");
 
-        // 2. Get current position
+        // 2. Save auth data
+        await _saveAuthData(authResponse);
+
+        // 3. Get current position
         final position = await _getCurrentPosition();
 
-        // 3. Determine role and update location
-        final role = await _authService.getUserRole(user.uid);
-        await _updateUserLocation(user.uid, position, role);
+        // 4. Update user location
+        await _updateUserLocation(
+          authResponse['userId'],
+          position,
+          authResponse['role'] == 'donor' ? UserRole.donor : UserRole.hospital,
+          authResponse['token']
+        );
 
-        // 4. Navigate to appropriate dashboard
+        // 5. Navigate to appropriate dashboard
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => role == UserRole.donor
+            builder: (context) => authResponse['role'] == 'donor'
                 ? const DonorDashboardScreen()
                 : const HospitalDashboard(),
           ),
@@ -59,6 +71,48 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) setState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<Map<String, dynamic>> _authenticateUser(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final authData = json.decode(response.body);
+        
+        // Ensure we have all required fields
+        if (authData['token'] == null || 
+            authData['userId'] == null ||
+            authData['role'] == null ||
+            authData['name'] == null) {
+          throw AuthFailure(message: "Invalid response from server");
+        }
+        
+        return authData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Authentication failed';
+        throw AuthFailure(message: message);
+      }
+    } catch (e) {
+      if (e is AuthFailure) rethrow;
+      throw AuthFailure(message: "Network error: ${e.toString()}");
+    }
+  }
+
+  Future<void> _saveAuthData(Map<String, dynamic> authData) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', authData['token']);
+    await prefs.setString('user_id', authData['userId']);
+    await prefs.setString('user_role', authData['role']);
+    await prefs.setString('user_name', authData['name']);
   }
 
   Future<Position> _getCurrentPosition() async {
@@ -84,16 +138,33 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Future<void> _updateUserLocation(String uid, Position position, UserRole role) async {
-    final locationData = {
-      'location': GeoPoint(position.latitude, position.longitude),
-      role == UserRole.donor ? 'lastActive' : 'lastLogin': FieldValue.serverTimestamp(),
-    };
-
-    await _firestore
-        .collection(role == UserRole.donor ? 'donors' : 'hospitals')
-        .doc(uid)
-        .update(locationData);
+  Future<void> _updateUserLocation(
+    String userId, 
+    Position position, 
+    UserRole role,
+    String token
+  ) async {
+    final endpoint = role == UserRole.donor ? 'donors' : 'hospitals';
+    
+    try {
+      await http.patch(
+        Uri.parse('$_baseUrl/$endpoint/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'location': {
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          },
+          'lastActive': DateTime.now().toIso8601String(),
+        }),
+      );
+    } catch (e) {
+      // Log error but don't prevent login if location update fails
+      debugPrint('Failed to update location: ${e.toString()}');
+    }
   }
 
   void _showError(String message) {

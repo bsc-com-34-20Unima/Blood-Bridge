@@ -7,8 +7,15 @@ class ChangePasswordPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Change Password"),
+        iconTheme: IconThemeData(color: Colors.white),
+        title: Text( "Change Password"),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 18
+        ),
         backgroundColor: Colors.red,
+  
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -43,7 +50,9 @@ class ChangePasswordPage extends StatelessWidget {
                 // Handle password update
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text("Update Password"),
+              child: Text("Update Password",
+              style: TextStyle(color:Colors.white),
+              ),
             ),
           ],
         ),

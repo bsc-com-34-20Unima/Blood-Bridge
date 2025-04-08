@@ -4,19 +4,28 @@ import 'package:flutter/material.dart';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:bloodbridge/pages/login.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  bool _receiveNotifications = true;
+  bool _eventReminders = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.red,
+        iconTheme: IconThemeData(color: Colors.white),
         elevation: 0,
         title: Text(
           "Settings",
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -42,7 +51,7 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EditProfilePage()));
+                  MaterialPageRoute(builder: (context) =>EditProfilePage()));
               },
             ),
             ListTile(
@@ -53,7 +62,7 @@ class SettingsPage extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChangePasswordPage()));
+                  MaterialPageRoute(builder: (context) =>ChangePasswordPage()));
               },
             ),
 
@@ -72,18 +81,22 @@ class SettingsPage extends StatelessWidget {
               activeColor: Colors.red,
               title: Text("Receive Notifications"),
               subtitle: Text("Enable or disable all notifications"),
-              value: true,
+              value: _receiveNotifications,
               onChanged: (bool value) {
-                // Toggle notifications setting
+                setState(() {
+                  _receiveNotifications = value;
+                });
               },
             ),
             SwitchListTile(
               activeColor: Colors.red,
               title: Text("Event Reminders"),
               subtitle: Text("Get reminders for upcoming events"),
-              value: false,
+              value: _eventReminders,
               onChanged: (bool value) {
-                // Toggle event reminders setting
+                setState(() {
+                  _eventReminders = value;
+                });
               },
             ),
 
@@ -150,7 +163,10 @@ class SettingsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Delete"),
+              child: Text(
+                "Delete",
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () {
                 // Handle account deletion
                 Navigator.pop(context);
@@ -179,36 +195,10 @@ class SettingsPage extends StatelessWidget {
                 backgroundColor: Colors.red,
               ),
               child: Text("Logout"),
-              onPressed: () async {
-                try {
-                  // Show loading indicator
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => Center(child: CircularProgressIndicator()),
-                  );
-                  
-                  // Perform logout
-                  await AuthService().signOut();
-                  
-                  // Close all dialogs
-                  Navigator.of(context, rootNavigator: true).pop();
-                  Navigator.of(context, rootNavigator: true).pop();
-                  
-                  // Navigate to LoginScreen and clear stack
-                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (context) => LoginScreen()),
-                    (route) => false,
-                  );
-                } catch (e) {
-                  // Close loading indicator
-                  Navigator.of(context, rootNavigator: true).pop();
-                  
-                  // Show error message
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Logout failed: ${e.toString()}')),
-                  );
-                }
+              onPressed: () {
+                // Handle logout functionality
+                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/login');
               },
             ),
           ],

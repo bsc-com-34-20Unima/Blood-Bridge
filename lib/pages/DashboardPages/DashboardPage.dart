@@ -37,7 +37,7 @@ class DashboardPage extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: Colors.grey,),
                 ),
                 SizedBox(height: 8),
                 Text(
@@ -45,11 +45,6 @@ class DashboardPage extends StatelessWidget {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
             ),
           ],
         ),

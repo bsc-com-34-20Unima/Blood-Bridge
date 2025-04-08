@@ -7,8 +7,12 @@ class EditProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        iconTheme: IconThemeData(color: Colors.white),
         title: Text("Edit Profile"),
-        titleTextStyle: TextStyle(color: Colors.white),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+           fontWeight: FontWeight.bold),
         backgroundColor: Colors.red,
       ),
       body: Padding(
@@ -40,7 +44,9 @@ class EditProfilePage extends StatelessWidget {
                 // Save profile changes
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: Text("Save Changes"),
+              child: Text("Save Changes",
+              style: TextStyle(color:Colors.white),
+              ),
             ),
           ],
         ),

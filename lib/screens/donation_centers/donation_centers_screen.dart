@@ -4,6 +4,8 @@ import 'package:geolocator/geolocator.dart';
 import 'center_list.dart';
 
 class DonationCentersScreen extends StatefulWidget {
+  const DonationCentersScreen({super.key});
+
   @override
   _DonationCentersScreenState createState() => _DonationCentersScreenState();
 }

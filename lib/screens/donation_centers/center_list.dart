@@ -5,7 +5,7 @@ import 'package:geolocator/geolocator.dart';
 class CenterList extends StatelessWidget {
   final Position position;
 
-  const CenterList({Key? key, required this.position}) : super(key: key);
+  const CenterList({super.key, required this.position});
 
   @override
   Widget build(BuildContext context) {

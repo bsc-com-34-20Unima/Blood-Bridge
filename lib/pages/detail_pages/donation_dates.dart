@@ -6,10 +6,11 @@ import 'package:intl/intl.dart';
 class DonationDates extends StatefulWidget {
   final bool isNextEligible;
 
-  const DonationDates({required this.isNextEligible});
+  const DonationDates({super.key, required this.isNextEligible});
 
   @override
-  _DonationDatesState createState() => _DonationDatesState();
+  
+   createState() => _DonationDatesState();
 }
 
 class _DonationDatesState extends State<DonationDates> {

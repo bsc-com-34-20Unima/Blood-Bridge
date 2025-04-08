@@ -1,6 +1,10 @@
 import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'package:bloodbridge/services/brevo_email_service.dart';
+import 'package:flutter/foundation.dart'; 
+
+
 
 class BloodRequestService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -101,17 +105,25 @@ class BloodRequestService {
   }
 
   Future<void> _sendRequestEmail({
-    required String donorEmail,
-    required String hospitalEmail,
-    required String bloodType,
-  }) async {
-    await _firestore.collection('mail').add({
-      'to': donorEmail,
-      'message': {
-        'subject': 'Urgent Blood Donation Request',
-        'text': 'Hospital $hospitalEmail needs $bloodType blood. '
-                'Please respond if you can donate.',
-      }
-    });
+  required String donorEmail,
+  required String hospitalEmail,
+  required String bloodType,
+}) async {
+  try {
+    await BrevoEmailService.sendBasicEmail(
+      to: donorEmail,
+      subject: 'Urgent Blood Donation Request',
+      text: 'Dear Donor,\n\n'
+          'Hospital ($hospitalEmail) urgently requires $bloodType blood. '
+          'If you are available to donate, please contact the hospital as soon as possible.\n\n'
+          'Thank you for your support!\n\n'
+          'BloodBridge Team',
+    );
+  } catch (e) {
+    debugPrint('Failed to send email to $donorEmail: $e');
+    // Optionally, rethrow the error to handle it at a higher level
+    throw Exception('Email sending failed: $e');
   }
+}
+
 }

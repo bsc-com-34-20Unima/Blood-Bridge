@@ -1,0 +1,47 @@
+
+Test.csv
+Your dataset has 10,086 rows and 12 columns. Here’s a quick overview:
+
+Column Details:
+country: Country of the respondent (e.g., Kenya).
+
+year: Year of data collection.
+
+uniqueid: Unique identifier for each respondent.
+
+location_type: Urban or Rural.
+
+cellphone_access: Whether the respondent has access to a cellphone (Yes/No).
+
+household_size: Number of people in the household.
+
+age_of_respondent: Age of the respondent.
+
+gender_of_respondent: Male or Female.
+
+relationship_with_head: Relationship to the head of the household (e.g., Head, Parent, Child).
+
+marital_status: Marital status of the respondent.
+
+education_level: Highest level of education achieved.
+
+job_type: Type of employment.
+
+Sample Data:
+country	year	uniqueid	location_type	cellphone_access	household_size	age_of_respondent	gender_of_respondent	relationship_with_head	marital_status	education_level	job_type
+Kenya	2018	uniqueid_6056	Urban	Yes	3	30	Male	Head of Household	Married/Living together	Secondary education	Formally employed Government
+Kenya	2018	uniqueid_6060	Urban	Yes	7	51
+
+
+
+VariableDefinitions.csv
+Spreadsheet
+
+The VariableDefinitions.csv file contains 12 rows and 2 columns, with variable names and their descriptions. However, the second column is unnamed. Here’s a quick look at the definitions:
+
+Variable	Description
+country	Country interviewee is in.
+year	Year survey was done in.
+uniqueid	Unique identifier for each interviewee.
+location_type	Type of location: Rural, Urban.
+cellphone_access	If interviewee has access to a cellphone: Yes, No

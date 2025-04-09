@@ -1,8 +1,6 @@
 import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:flutter/material.dart';
-import 'package:bloodbridge/services/auth_service.dart';
-import 'package:bloodbridge/pages/login.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});

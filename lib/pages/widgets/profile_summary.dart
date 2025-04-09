@@ -232,18 +232,9 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
           // App Bar with World Profile and Eligibility
           Container(
             padding: const EdgeInsets.only(top: 40.0, left: 20.0, right: 20.0, bottom: 10.0),
-            color: darkRed,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  "Your Profile",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
                   decoration: BoxDecoration(
@@ -447,7 +438,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
               ),
               const SizedBox(height: 12),
               const Text(
-                "Your blood donations have helped save up to 36 lives so far. One donation can save up to 3 lives.",
+                "Your blood donations have helped save so many lives. One donation can save up to 3 lives.",
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,
@@ -455,7 +446,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
               ),
               const SizedBox(height: 16),
               const Text(
-                "There is currently a shortage of your blood type in your area. Consider donating this month.",
+                "Blood is usually needded in hospitals due to having less blood units. Consider donating this month and invite others.",
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey,

@@ -9,8 +9,7 @@ class DonationDates extends StatefulWidget {
   const DonationDates({super.key, required this.isNextEligible});
 
   @override
-  
-   createState() => _DonationDatesState();
+  _DonationDatesState createState() => _DonationDatesState();
 }
 
 class _DonationDatesState extends State<DonationDates> {

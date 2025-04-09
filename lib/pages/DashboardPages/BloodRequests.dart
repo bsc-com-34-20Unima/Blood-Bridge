@@ -16,6 +16,19 @@ class _BloodRequestsState extends State<BloodRequests> {
   
   String _selectedBloodType = 'A+';
   bool _isLoading = false;
+  bool _broadcastAll = false;  // New flag for broadcasting requests
+  
+  // Map Flutter blood types to API blood types if needed
+  final Map<String, String> _bloodTypeMapping = {
+    'A+': 'A_POSITIVE',
+    'A-': 'A_NEGATIVE',
+    'B+': 'B_POSITIVE',
+    'B-': 'B_NEGATIVE',
+    'AB+': 'AB_POSITIVE',
+    'AB-': 'AB_NEGATIVE',
+    'O+': 'O_POSITIVE',
+    'O-': 'O_NEGATIVE',
+  };
 
   // Blood type color mapping for visual enhancement
   final Map<String, Color> _bloodTypeColors = {
@@ -31,6 +44,7 @@ class _BloodRequestsState extends State<BloodRequests> {
 
   @override
   Widget build(BuildContext context) {
+    // Build method remains the same
     return Scaffold(
       appBar: AppBar(
         title: const Text('Blood Donor Request'),
@@ -69,6 +83,24 @@ class _BloodRequestsState extends State<BloodRequests> {
                           ))
                       .toList(),
                   onChanged: (value) => setState(() => _selectedBloodType = value!),
+                ),
+                const SizedBox(height: 20),
+
+                // Broadcast Option
+                CheckboxListTile(
+                  value: _broadcastAll,
+                  onChanged: (value) {
+                    setState(() {
+                      _broadcastAll = value!;
+                      // Clear the blood type selection if broadcasting
+                      if (_broadcastAll) {
+                        _selectedBloodType = '';
+                      }
+                    });
+                  },
+                  title: const Text('Broadcast to all donors'),
+                  subtitle: const Text('If selected, the request will be sent to all donors, regardless of blood type.'),
+                  controlAffinity: ListTileControlAffinity.leading,
                 ),
                 const SizedBox(height: 20),
 
@@ -145,16 +177,23 @@ class _BloodRequestsState extends State<BloodRequests> {
 
     setState(() => _isLoading = true);
     try {
-      await _requestService.requestDonorsByDistance(
-        hospitalId: FirebaseAuth.instance.currentUser!.uid,
-        requestedBloodType: _selectedBloodType,
+      // Convert Firebase UID to your hospital ID format if needed
+      String hospitalId = FirebaseAuth.instance.currentUser!.uid;
+      
+      // Get API-compatible blood type, or use null if broadcasting
+      String? apiBloodType = _broadcastAll ? null : _bloodTypeMapping[_selectedBloodType] ?? _selectedBloodType;
+      
+      final results = await _requestService.requestDonorsByDistance(
+        hospitalId: hospitalId,
+        requestedBloodType: apiBloodType,
         maxDistanceKm: double.parse(_distanceController.text),
+        broadcastAll: _broadcastAll, // Pass broadcast flag
       );
       
-      // More descriptive success message
+      // More descriptive success message with count of donors notified
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Blood donor requests sent for $_selectedBloodType blood type!'),
+          content: Text('${results.length} blood donor requests sent for $_selectedBloodType blood type!'),
           backgroundColor: Colors.green,
         ),
       );

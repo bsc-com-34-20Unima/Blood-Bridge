@@ -1,129 +1,105 @@
-import 'package:geolocator/geolocator.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
-import 'package:bloodbridge/services/brevo_email_service.dart';
-import 'package:flutter/foundation.dart'; 
-
-
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BloodRequestService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String baseUrl = 'http://192.168.137.1:3004';
+  final http.Client _httpClient = http.Client();
 
-  Future<void> requestDonorsByDistance({
+  // Get token from SharedPreferences
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+
+  // Create a blood request (authenticated)
+  Future<List<dynamic>> requestDonorsByDistance({
     required String hospitalId,
-    required String requestedBloodType,
     required double maxDistanceKm,
+    required bool broadcastAll,
+    String? requestedBloodType,  // Nullable for broadcasting
+    double quantity = 1.0,
   }) async {
-    // 1. Get hospital data
-    final hospitalDoc = await _firestore.collection('hospitals').doc(hospitalId).get();
-    final hospitalData = hospitalDoc.data()!;
-    final hospitalLoc = hospitalData['location'] as GeoPoint;
-    final hospitalEmail = hospitalData['email'] as String;
+    final token = await _getToken();
+    if (token == null) throw Exception('Authorization token not found');
 
-    // 2. Find compatible donors within distance
-    final donors = await _findDonorsWithinRadius(
-      center: hospitalLoc,
-      radiusKm: maxDistanceKm,
-      bloodType: requestedBloodType,
-    );
+    try {
+      final requestBody = jsonEncode({
+        'hospitalId': hospitalId,
+        'radius': maxDistanceKm,
+        'quantity': quantity,
+        'broadcastAll': broadcastAll,
+        'bloodType': broadcastAll ? null : requestedBloodType,
+      });
 
-    // 3. Create requests and notify donors
-    for (final donor in donors) {
-      await _createBloodRequest(
-        hospitalId: hospitalId,
-        hospitalEmail: hospitalEmail,
-        donor: donor,
+      final response = await _httpClient.post(
+        Uri.parse('$baseUrl/blood-requests'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: requestBody,
       );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return jsonDecode(response.body) as List<dynamic>;
+      } else {
+        final error = jsonDecode(response.body);
+        throw Exception(error['message'] ?? 'Failed to create blood request');
+      }
+    } catch (e) {
+      throw Exception('Error creating blood request: ${e.toString()}');
     }
   }
 
-  Future<List<QueryDocumentSnapshot>> _findDonorsWithinRadius({
-    required GeoPoint center,
-    required double radiusKm,
-    required String bloodType,
-  }) async {
-    // Approximate 1 degree = 111km
-    final lat = radiusKm / 111;
-    final lng = radiusKm / (111 * cos(center.latitude * (pi / 180)));
-
-    final query = _firestore.collection('donors')
-      .where('bloodType', isEqualTo: bloodType)
-      .where('location', 
-        isGreaterThan: GeoPoint(center.latitude - lat, center.longitude - lng),
-        isLessThan: GeoPoint(center.latitude + lat, center.longitude + lng),
-      );
-
-    final snapshot = await query.get();
-
-    // Filter by exact distance
-    return snapshot.docs.where((doc) {
-      final donorLoc = doc['location'] as GeoPoint;
-      final distance = Geolocator.distanceBetween(
-        center.latitude,
-        center.longitude,
-        donorLoc.latitude,
-        donorLoc.longitude,
-      ) / 1000;
-      return distance <= radiusKm;
-    }).toList();
-  }
-
-  Future<void> _createBloodRequest({
-    required String hospitalId,
-    required String hospitalEmail,
-    required QueryDocumentSnapshot donor,
-  }) async {
-    // 1. Create request record
-    await _firestore.collection('blood_requests').add({
-      'hospitalId': hospitalId,
-      'donorId': donor.id,
-      'donorEmail': donor['email'],
-      'bloodType': donor['bloodType'],
-      'requestedAt': FieldValue.serverTimestamp(),
-      'status': 'pending',
-      'distanceKm': _calculateDistance(
-        donor['location'] as GeoPoint,
-        (await _firestore.collection('hospitals').doc(hospitalId).get())['location'],
-      ),
-    });
-
-    // 2. Send email to donor
-    await _sendRequestEmail(
-      donorEmail: donor['email'],
-      hospitalEmail: hospitalEmail,
-      bloodType: donor['bloodType'],
+  // Get all blood requests for a hospital
+  Future<List<dynamic>> getHospitalRequests(String hospitalId) async {
+    final response = await _httpClient.get(
+      Uri.parse('$baseUrl/blood-requests/hospital/$hospitalId'),
+      headers: {
+        'Content-Type': 'application/json',
+        // If auth is needed here, also include the token
+      },
     );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    } else {
+      throw Exception('Failed to load blood requests');
+    }
   }
 
-  double _calculateDistance(GeoPoint donorLoc, GeoPoint hospitalLoc) {
-    return Geolocator.distanceBetween(
-      hospitalLoc.latitude,
-      hospitalLoc.longitude,
-      donorLoc.latitude,
-      donorLoc.longitude,
-    ) / 1000;
-  }
-
-  Future<void> _sendRequestEmail({
-  required String donorEmail,
-  required String hospitalEmail,
-  required String bloodType,
-}) async {
-  try {
-    await BrevoEmailService.sendBasicEmail(
-      to: donorEmail,
-      subject: 'Urgent Blood Donation Request',
-      text: 'Dear Donor,\n\n'
-          'Hospital ($hospitalEmail) urgently requires $bloodType blood. '
-          'If you are available to donate, please contact the hospital as soon as possible.\n\n'
-          'Thank you for your support!\n\n'
-          'BloodBridge Team',
+  // Get the status of a specific request
+  Future<Map<String, dynamic>> getRequestStatus(int requestId) async {
+    final response = await _httpClient.get(
+      Uri.parse('$baseUrl/blood-requests/$requestId'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     );
-  } catch (e) {
-    debugPrint('Failed to send email to $donorEmail: $e');
-    // Optionally, rethrow the error to handle it at a higher level
-    throw Exception('Email sending failed: $e');
-  }
-}
 
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to load request status');
+    }
+  }
+
+  // Cancel a blood request
+  Future<void> cancelRequest(int requestId) async {
+    final response = await _httpClient.delete(
+      Uri.parse('$baseUrl/blood-requests/$requestId'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to cancel blood request');
+    }
+  }
+
+  void dispose() {
+    _httpClient.close();
+  }
 }

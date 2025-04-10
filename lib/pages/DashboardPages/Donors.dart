@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // For formatting dates
 
 void main() {
   runApp(BloodBridgeApp());
@@ -20,8 +21,14 @@ class Donor {
   String name;
   String bloodGroup;
   String lastDonation;
+  String phone;
 
-  Donor({required this.name, required this.bloodGroup, required this.lastDonation});
+  Donor({
+    required this.name,
+    required this.bloodGroup,
+    required this.lastDonation,
+    required this.phone,
+  });
 }
 
 class DonorsPage extends StatefulWidget {
@@ -33,10 +40,10 @@ class DonorsPage extends StatefulWidget {
 
 class _DonorsPageState extends State<DonorsPage> {
   List<Donor> donors = [
-    Donor(name: "John Doe", bloodGroup: "A+", lastDonation: "05 Jan 2025"),
-    Donor(name: "Jane Smith", bloodGroup: "O-", lastDonation: "12 Dec 2024"),
-    Donor(name: "Michael Lee", bloodGroup: "B+", lastDonation: "20 Nov 2024"),
-    Donor(name: "Lisa Ray", bloodGroup: "AB-", lastDonation: "10 Oct 2024"),
+    Donor(name: "chisomo Doe", bloodGroup: "A+", lastDonation: "05 Jan 2025", phone: "0999123456"),
+    Donor(name: "Jane Smith", bloodGroup: "O-", lastDonation: "12 Dec 2024", phone: "0888765432"),
+    Donor(name: "Michael usi", bloodGroup: "B+", lastDonation: "20 Nov 2024", phone: "0977456789"),
+    Donor(name: "Lorrita juta ", bloodGroup: "AB-", lastDonation: "10 Oct 2024", phone: "0999345678"),
   ];
 
   List<Donor> filteredDonors = [];
@@ -50,7 +57,7 @@ class _DonorsPageState extends State<DonorsPage> {
   void _filterDonors(String query) {
     setState(() {
       filteredDonors = donors
-          .where((donor) => donor.name.toLowerCase().contains(query.toLowerCase()))
+          .where((donor) => donor.bloodGroup.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -72,29 +79,64 @@ class _DonorsPageState extends State<DonorsPage> {
   void _showUpdateDialog(int index) {
     TextEditingController nameController = TextEditingController(text: donors[index].name);
     TextEditingController bloodGroupController = TextEditingController(text: donors[index].bloodGroup);
-    TextEditingController lastDonationController = TextEditingController(text: donors[index].lastDonation);
+    TextEditingController phoneController = TextEditingController(text: donors[index].phone);
+
+    DateTime? selectedDate = DateFormat("dd MMM yyyy").parse(donors[index].lastDonation);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text("Update Donor"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Name"),
-              ),
-              TextField(
-                controller: bloodGroupController,
-                decoration: InputDecoration(labelText: "Blood Group"),
-              ),
-              TextField(
-                controller: lastDonationController,
-                decoration: InputDecoration(labelText: "Last Donation Date"),
-              ),
-            ],
+          content: StatefulBuilder(
+            builder: (context, setStateDialog) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(labelText: "Name"),
+                  ),
+                  TextField(
+                    controller: bloodGroupController,
+                    decoration: InputDecoration(labelText: "Blood Group"),
+                  ),
+                  TextField(
+                    controller: phoneController,
+                    decoration: InputDecoration(labelText: "Phone Number"),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  SizedBox(height: 10),
+                  InkWell(
+                    onTap: () async {
+                      DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        setStateDialog(() {
+                          selectedDate = picked;
+                        });
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: InputDecoration(
+                        labelText: 'Last Donation Date',
+                        border: OutlineInputBorder(),
+                      ),
+                      child: Text(
+                        selectedDate != null
+                            ? DateFormat('dd MMM yyyy').format(selectedDate!)
+                            : 'Select Date',
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
           actions: [
             TextButton(
@@ -108,7 +150,9 @@ class _DonorsPageState extends State<DonorsPage> {
                 setState(() {
                   donors[index].name = nameController.text;
                   donors[index].bloodGroup = bloodGroupController.text;
-                  donors[index].lastDonation = lastDonationController.text;
+                  donors[index].phone = phoneController.text;
+                  donors[index].lastDonation =
+                      selectedDate != null ? DateFormat('dd MMM yyyy').format(selectedDate!) : donors[index].lastDonation;
                   filteredDonors = List.from(donors);
                 });
                 Navigator.pop(context);
@@ -131,7 +175,7 @@ class _DonorsPageState extends State<DonorsPage> {
             TextField(
               onChanged: _filterDonors,
               decoration: InputDecoration(
-                labelText: "Search Donor",
+                labelText: "Search by Blood Group",
                 prefixIcon: Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
@@ -174,6 +218,11 @@ class _DonorsPageState extends State<DonorsPage> {
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
                                   ),
+                                ),
+                                SizedBox(height: 5),
+                                Text(
+                                  "Phone: ${donor.phone}",
+                                  style: TextStyle(fontSize: 14),
                                 ),
                                 SizedBox(height: 5),
                                 Text(

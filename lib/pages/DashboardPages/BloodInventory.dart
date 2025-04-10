@@ -60,16 +60,7 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Blood Inventory'),
-        backgroundColor: Colors.redAccent,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshInventory,
-          ),
-        ],
-      ),
+    
       body: FutureBuilder<List<BloodInventory>>(
         future: _inventoryFuture,
         builder: (context, snapshot) {

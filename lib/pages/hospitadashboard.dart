@@ -1,11 +1,11 @@
 import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
-import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
 import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
 import 'package:bloodbridge/pages/Settings/Alerts.dart';
 import 'package:bloodbridge/pages/Settings/Settings.dart';
 import 'package:flutter/material.dart';
+import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 
 void main() {
   runApp(MyApp());
@@ -66,17 +66,16 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
           IconButton(
             icon: Icon(Icons.notifications, color: Colors.white),
             onPressed: () {
-              Navigator.push(context, 
-              MaterialPageRoute(builder: (context) => AlertPage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => AlertPage()));
             },
           ),
           IconButton(
             icon: Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               // Settings action
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsPage()));
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => SettingsPage()));
             },
           ),
         ],
@@ -84,7 +83,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
-          children: [ 
+          children: [
             DrawerHeader(
               decoration: BoxDecoration(color: Colors.red),
               child: Center(

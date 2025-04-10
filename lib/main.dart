@@ -24,6 +24,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
       home: LoginScreen(),
       routes: {
         '/dashboard': (context) => DashboardPage(),

@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   final AuthService _authService = AuthService();
+  final String _baseUrl = 'http://192.168.190.139:3005';
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -107,7 +108,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(' BloodBridge Login'),
+        title: const Text('Login', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
         backgroundColor: Colors.red[700],
       ),
       body: SingleChildScrollView(
@@ -186,7 +188,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return Align(
       alignment: Alignment.centerRight,
       child: TextButton(
-        onPressed: () => _showError("Password reset feature coming soon!"),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SignUpPage()),
+        ),
         child: const Text(
           "Forgot Password?",
           style: TextStyle(color: Colors.red),

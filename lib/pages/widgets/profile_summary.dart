@@ -1,4 +1,3 @@
-import 'package:bloodbridge/pages/widgets/BloodGroup.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -70,7 +69,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
         // Fetch blood type data using blood group directly
         if (donorData.containsKey('bloodGroup') && donorData['bloodGroup'] != null) {
           final bloodGroupResponse = await http.get(
-            Uri.parse('http://192.168.137.190:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
+            Uri.parse('http://192.168.190.139:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
           );
           
           if (bloodGroupResponse.statusCode == 200) {
@@ -103,7 +102,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   Future<void> _updateLastDonation(DateTime selectedDate) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+        Uri.parse('http://192.168.190.139:3004/donors/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'lastDonation': selectedDate.toIso8601String(),

@@ -134,8 +134,9 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Donor Registration'),
+        title: const Text('Donor Registration', style: TextStyle(fontSize: 24, color: Colors.white)),
         backgroundColor: Colors.red[700],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -217,13 +218,13 @@ class _SignUpPageState extends State<SignUpPage> {
                 onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.red[700],
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'REGISTER',
-                        style: TextStyle(fontSize: 16),
+                        'Sign Up',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
               ),
             ],

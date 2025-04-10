@@ -1,20 +1,3 @@
-// Assuming you have a BloodGroup model that handles the BloodGroup data
-class Donor {
-  final String id;
-  final String name;
-  final BloodGroup bloodGroup;  // BloodGroup now comes as a nested object
-
-  Donor({required this.id, required this.name, required this.bloodGroup});
-
-  factory Donor.fromJson(Map<String, dynamic> json) {
-    return Donor(
-      id: json['id'],
-      name: json['name'],
-      bloodGroup: BloodGroup.fromJson(json['bloodGroup']),
-    );
-  }
-}
-
 class BloodGroup {
   final String id;
   final String bloodGroup;

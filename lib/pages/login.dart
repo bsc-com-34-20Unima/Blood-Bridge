@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:bloodbridge/services/auth_service.dart'; // Make sure this import path is correct
 
-enum UserRole { donor, hospital }
-
-class AuthFailure implements Exception {
+class LocationFailure implements Exception {
   final String message;
-  AuthFailure({required this.message});
+  LocationFailure({required this.message});
 }
 
 class LoginScreen extends StatefulWidget {
@@ -27,33 +23,24 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-  final String _baseUrl = 'http://192.168.137.1';
+  final AuthService _authService = AuthService();
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        // 1. Authenticate user with backend
-        final authResponse = await _authenticateUser(
+        // 1. Check location services first - fail early if not available
+        final position = await _getCurrentPosition();
+        
+        // 2. Login with location data
+        final authResponse = await _authService.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
+          latitude: position.latitude,
+          longitude: position.longitude,
         );
 
-        // 2. Save auth data
-        await _saveAuthData(authResponse);
-
-        // 3. Get current position
-        final position = await _getCurrentPosition();
-
-        // 4. Update user location
-        await _updateUserLocation(
-          authResponse['userId'],
-          position,
-          authResponse['role'] == 'donor' ? UserRole.donor : UserRole.hospital,
-          authResponse['token']
-        );
-
-        // 5. Navigate to appropriate dashboard
+        // 3. Navigate to appropriate dashboard
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -63,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 : const HospitalDashboard(),
           ),
         );
-      } on AuthFailure catch (e) {
+      } on LocationFailure catch (e) {
         _showError(e.message);
       } catch (e) {
         _showError("Login failed: ${e.toString()}");
@@ -73,97 +60,35 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<Map<String, dynamic>> _authenticateUser(String email, String password) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final authData = json.decode(response.body);
-        
-        // Ensure we have all required fields
-        if (authData['token'] == null || 
-            authData['userId'] == null ||
-            authData['role'] == null ||
-            authData['name'] == null) {
-          throw AuthFailure(message: "Invalid response from server");
-        }
-        
-        return authData;
-      } else {
-        final errorData = json.decode(response.body);
-        final message = errorData['message'] ?? 'Authentication failed';
-        throw AuthFailure(message: message);
-      }
-    } catch (e) {
-      if (e is AuthFailure) rethrow;
-      throw AuthFailure(message: "Network error: ${e.toString()}");
-    }
-  }
-
-  Future<void> _saveAuthData(Map<String, dynamic> authData) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', authData['token']);
-    await prefs.setString('user_id', authData['userId']);
-    await prefs.setString('user_role', authData['role']);
-    await prefs.setString('user_name', authData['name']);
-  }
-
   Future<Position> _getCurrentPosition() async {
     final isEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!isEnabled) throw Exception('Location services are disabled');
+    if (!isEnabled) {
+      throw LocationFailure(message: 'Location services are disabled. Please enable location services to continue.');
+    }
 
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions denied');
+        throw LocationFailure(message: 'Location permission denied. Location access is required to log in.');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      throw Exception('Location permissions permanently denied');
+      throw LocationFailure(
+        message: 'Location permissions permanently denied. Please enable location permissions in app settings to log in.'
+      );
     }
 
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-      ),
-    );
-  }
-
-  Future<void> _updateUserLocation(
-    String userId, 
-    Position position, 
-    UserRole role,
-    String token
-  ) async {
-    final endpoint = role == UserRole.donor ? 'donors' : 'hospitals';
-    
     try {
-      await http.patch(
-        Uri.parse('$_baseUrl/$endpoint/$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: json.encode({
-          'location': {
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-          },
-          'lastActive': DateTime.now().toIso8601String(),
-        }),
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
       );
     } catch (e) {
-      // Log error but don't prevent login if location update fails
-      debugPrint('Failed to update location: ${e.toString()}');
+      throw LocationFailure(message: 'Could not get current location: ${e.toString()}');
     }
   }
 
@@ -172,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red,
+        backgroundColor: const Color.fromARGB(255, 71, 67, 67),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -204,6 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 _buildLoginButton(),
                 const SizedBox(height: 20),
                 _buildSignUpPrompt(),
+                const SizedBox(height: 15),
+                _buildLocationRequirementNote(),
               ],
             ),
           ),
@@ -317,6 +244,29 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLocationRequirementNote() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.withOpacity(0.3))
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.location_on, color: Colors.red, size: 20),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              "Location access is required to use BloodBridge.",
+              style: TextStyle(fontSize: 13),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

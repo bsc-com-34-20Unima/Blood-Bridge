@@ -1,105 +1,152 @@
 import 'dart:convert';
+import 'package:bloodbridge/services/auth_service.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class BloodRequestService {
-  final String baseUrl = 'http://192.168.137.1:3004';
-  final http.Client _httpClient = http.Client();
+  final AuthService _authService = AuthService();
+  final String baseUrl = 'http://192.168.137.190:3004';
 
-  // Get token from SharedPreferences
-  Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('auth_token');
-  }
-
-  // Create a blood request (authenticated)
   Future<List<dynamic>> requestDonorsByDistance({
-    required String hospitalId,
-    required double maxDistanceKm,
-    required bool broadcastAll,
-    String? requestedBloodType,  // Nullable for broadcasting
-    double quantity = 1.0,
+    required String bloodType,
+    required double radius,
+    required int quantity,
+    bool broadcastAll = false,
   }) async {
-    final token = await _getToken();
-    if (token == null) throw Exception('Authorization token not found');
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+
+    if (token == null || userId == null) {
+      throw Exception('Authentication required');
+    }
+
+    // Create request body matching the controller's expected format
+    final requestBody = {
+      'hospitalId': userId,
+      'bloodType': broadcastAll ? 'ALL' : bloodType,
+      'radius': radius,
+      'quantity': quantity,
+      'broadcastAll': broadcastAll,
+    };
 
     try {
-      final requestBody = jsonEncode({
-        'hospitalId': hospitalId,
-        'radius': maxDistanceKm,
-        'quantity': quantity,
-        'broadcastAll': broadcastAll,
-        'bloodType': broadcastAll ? null : requestedBloodType,
-      });
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/blood-requests/'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode(requestBody),
+          )
+          .timeout(const Duration(seconds: 30));
 
-      final response = await _httpClient.post(
-        Uri.parse('$baseUrl/blood-requests'),
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Request failed: $e');
+    }
+  }
+
+  List<dynamic> _handleResponse(http.Response response) {
+    final body = response.body;
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(body);
+      return data is List ? data : [data];
+    } else {
+      final errorData = json.decode(body);
+      final message = errorData['message'] ?? 'API Error: ${response.statusCode}';
+      throw Exception(message);
+    }
+  }
+  
+  // Get all blood requests for a hospital
+  Future<List<dynamic>> getHospitalRequests() async {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/blood-requests/hospital/$userId'),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
         },
-        body: requestBody,
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return jsonDecode(response.body) as List<dynamic>;
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        return responseData;
       } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Failed to create blood request');
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to fetch blood requests';
+        throw Exception(message);
       }
     } catch (e) {
-      throw Exception('Error creating blood request: ${e.toString()}');
+      throw Exception('Failed to load blood requests: ${e.toString()}');
     }
   }
-
-  // Get all blood requests for a hospital
-  Future<List<dynamic>> getHospitalRequests(String hospitalId) async {
-    final response = await _httpClient.get(
-      Uri.parse('$baseUrl/blood-requests/hospital/$hospitalId'),
-      headers: {
-        'Content-Type': 'application/json',
-        // If auth is needed here, also include the token
-      },
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as List<dynamic>;
-    } else {
-      throw Exception('Failed to load blood requests');
-    }
-  }
-
-  // Get the status of a specific request
-  Future<Map<String, dynamic>> getRequestStatus(int requestId) async {
-    final response = await _httpClient.get(
-      Uri.parse('$baseUrl/blood-requests/$requestId'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } else {
-      throw Exception('Failed to load request status');
-    }
-  }
-
+  
   // Cancel a blood request
-  Future<void> cancelRequest(int requestId) async {
-    final response = await _httpClient.delete(
-      Uri.parse('$baseUrl/blood-requests/$requestId'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
+  Future<bool> cancelRequest(String requestId) async {
+    final token = await _authService.getToken();
+    
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/blood-requests/$requestId/cancel'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Failed to cancel blood request');
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to cancel blood request';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to cancel blood request: ${e.toString()}');
     }
   }
+  
+  // Get blood request statistics for a hospital
+  Future<Map<String, dynamic>> getRequestStatistics() async {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/blood-requests/stats/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-  void dispose() {
-    _httpClient.close();
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return responseData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to fetch statistics';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to load statistics: ${e.toString()}');
+    }
   }
 }

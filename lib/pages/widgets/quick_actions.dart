@@ -27,19 +27,7 @@ class QuickActions extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          _buildDashboardCard(
-            context,
-            Icons.location_on,
-            'Find Donation Centers',
-            'Locate nearest blood banks and hospitals',
-            Colors.green,
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DonationCentersScreen(),
-              ),
-            ),
-          ),
+          
           SizedBox(height: 16),
           _buildDashboardCard(
             context,

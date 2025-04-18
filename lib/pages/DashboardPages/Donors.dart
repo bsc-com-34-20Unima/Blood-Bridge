@@ -33,10 +33,10 @@ class DonorsPage extends StatefulWidget {
 
 class _DonorsPageState extends State<DonorsPage> {
   List<Donor> donors = [
-    Donor(name: "John Doe", bloodGroup: "A+", lastDonation: "05 Jan 2025"),
-    Donor(name: "Jane Smith", bloodGroup: "O-", lastDonation: "12 Dec 2024"),
-    Donor(name: "Michael Lee", bloodGroup: "B+", lastDonation: "20 Nov 2024"),
-    Donor(name: "Lisa Ray", bloodGroup: "AB-", lastDonation: "10 Oct 2024"),
+    Donor(name: "Samuel Njoka", bloodGroup: "A+", lastDonation: "05 Jan 2025"),
+    Donor(name: "Madalitso Muwawa", bloodGroup: "O-", lastDonation: "12 Dec 2024"),
+    Donor(name: "Nickson Kalulu", bloodGroup: "B+", lastDonation: "20 Nov 2024"),
+    Donor(name: "Charles Kamwaza", bloodGroup: "AB-", lastDonation: "10 Oct 2024"),
   ];
 
   List<Donor> filteredDonors = [];

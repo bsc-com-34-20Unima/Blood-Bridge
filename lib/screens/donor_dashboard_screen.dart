@@ -22,7 +22,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     UrgentRequests(),
     QuickActions(),
     Events(),
-    Achievements(donations: 12),
+    Achievements(),
     SupportSection(),
   ];
 

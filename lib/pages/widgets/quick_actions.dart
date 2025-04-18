@@ -38,7 +38,7 @@ class QuickActions extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => Achievements(donations:0,),
+                builder: (context) => Achievements(),
               ),
             ),
           ),

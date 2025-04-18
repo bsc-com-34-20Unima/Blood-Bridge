@@ -104,7 +104,7 @@ class _BloodRequestsState extends State<BloodRequests> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Blood Donor Request'),
+          title: const Text(''),
           centerTitle: true,
           elevation: 1,
           bottom: const TabBar(

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Achievement {
   final String title;
@@ -16,13 +19,70 @@ class Achievement {
   });
 }
 
-class Achievements extends StatelessWidget {
-  final int donations; // Number of donations by the donor
+class Achievements extends StatefulWidget {
+  const Achievements({super.key});
 
-  const Achievements({super.key, required this.donations});
+  @override
+  State<Achievements> createState() => _AchievementsState();
+}
+
+class _AchievementsState extends State<Achievements> {
+  bool isLoading = true;
+  Map<String, dynamic> donorData = {};
+  String? userId;
+  int donations = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserId();
+  }
+
+  Future<void> _loadUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      userId = prefs.getString('user_id');
+    });
+    _fetchDonorData();
+  }
+
+  Future<void> _fetchDonorData() async {
+    if (userId == null) return;
+    
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // Fetch donor data from the backend
+      final donorResponse = await http.get(
+        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+      );
+      
+      if (donorResponse.statusCode == 200) {
+        final donorJson = json.decode(donorResponse.body);
+        setState(() {
+          donorData = donorJson;
+          donations = donorJson['donations'] ?? 0;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching donor data: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     // Define all standard achievements based on donation count
     final List<Achievement> allAchievements = [
       Achievement(
@@ -114,165 +174,163 @@ class Achievements extends StatelessWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Your Achievements'),
-        backgroundColor: Colors.red,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: Container(
-          color: Colors.grey[100],
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with current status
-              Container(
-                width: double.infinity,
-                color: Colors.red,
-                padding: EdgeInsets.only(left: 16, right: 16, bottom: 24),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.water_drop,
-                          color: Colors.white,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          '$donations Donations',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+      body: RefreshIndicator(
+        onRefresh: _fetchDonorData,
+        child: SafeArea(
+          child: Container(
+            color: Colors.grey[100],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with current status
+                Container(
+                  width: double.infinity,
+                  color: Colors.red,
+                  padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.water_drop,
                             color: Colors.white,
                           ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
+                          const SizedBox(width: 8),
                           Text(
-                            'Progress to next achievement',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          Text(
-                            donations >= 25 
-                                ? 'All achievements unlocked!' 
-                                : '$donations/$nextMilestone',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.white70,
+                            '$donations Donations',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: LinearProgressIndicator(
-                        value: overallProgress,
-                        minHeight: 8,
-                        backgroundColor: Colors.red.shade800,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              
-              // Achievement cards
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: allAchievements.length,
-                    itemBuilder: (context, index) {
-                      final achievement = allAchievements[index];
-                      final bool unlocked = donations >= achievement.requiredDonations;
-                      
-                      return Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: unlocked 
-                              ? BorderSide(color: achievement.color, width: 2) 
-                              : BorderSide(color: Colors.transparent),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Progress to next achievement',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                            Text(
+                              donations >= 25 
+                                  ? 'All achievements unlocked!' 
+                                  : '$donations/$nextMilestone',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: unlocked 
-                                      ? achievement.color.withOpacity(0.1) 
-                                      : Colors.grey.withOpacity(0.1),
-                                  shape: BoxShape.circle,
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: LinearProgressIndicator(
+                          value: overallProgress,
+                          minHeight: 8,
+                          backgroundColor: Colors.red.shade800,
+                          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // Achievement cards
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: GridView.builder(
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.85,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: allAchievements.length,
+                      itemBuilder: (context, index) {
+                        final achievement = allAchievements[index];
+                        final bool unlocked = donations >= achievement.requiredDonations;
+                        
+                        return Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: unlocked 
+                                ? BorderSide(color: achievement.color, width: 2) 
+                                : const BorderSide(color: Colors.transparent),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: unlocked 
+                                        ? achievement.color.withOpacity(0.1) 
+                                        : Colors.grey.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    achievement.icon,
+                                    color: unlocked 
+                                        ? achievement.color 
+                                        : Colors.grey,
+                                    size: 32,
+                                  ),
                                 ),
-                                child: Icon(
-                                  achievement.icon,
-                                  color: unlocked 
-                                      ? achievement.color 
-                                      : Colors.grey,
-                                  size: 32,
-                                ),
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                achievement.title,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: unlocked 
-                                      ? Colors.black87 
-                                      : Colors.black54,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                achievement.description,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              SizedBox(height: 8),
-                              if (!unlocked)
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Unlock at ${achievement.requiredDonations} donations',
+                                  achievement.title,
                                   style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
+                                    fontWeight: FontWeight.bold,
+                                    color: unlocked 
+                                        ? Colors.black87 
+                                        : Colors.black54,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
-                            ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  achievement.description,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 8),
+                                if (!unlocked)
+                                  Text(
+                                    'Unlock at ${achievement.requiredDonations} donations',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.grey,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

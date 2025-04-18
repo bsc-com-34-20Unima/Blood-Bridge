@@ -42,7 +42,7 @@ class _EventsPageState extends State<EventsPage> {
     try {
       // Update with your NestJS server URL
       final response = await http.get(
-        Uri.parse('http://192.168.190.139:3005/events'),
+        Uri.parse('http://10.0.2.2:3004/events'),
       );
       
       if (response.statusCode == 200) {
@@ -71,7 +71,7 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _createEvent(Map<String, dynamic> eventData) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.190.139:3005/events'),
+        Uri.parse('http://10.0.2.2:3004/events'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(eventData),
       );
@@ -97,7 +97,7 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _updateEvent(String id, Map<String, dynamic> eventData) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://192.168.190.139:3005/events/$id'),
+        Uri.parse('http://10.0.2.2:3004/events/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(eventData),
       );
@@ -123,7 +123,7 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _deleteEvent(String id) async {
     try {
       final response = await http.delete(
-        Uri.parse('http://192.168.190.139:3005/events/$id'),
+        Uri.parse('http://10.0.2.2:3004/events/$id'),
       );
       
       if (response.statusCode == 204) {

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() {
   runApp(BloodBridgeApp());
@@ -17,11 +19,29 @@ class BloodBridgeApp extends StatelessWidget {
 }
 
 class Donor {
-  String name;
-  String bloodGroup;
-  String lastDonation;
+  final String id;
+  final String name;
+  final String bloodGroup;
+  final String lastDonation;
+  final String phone;
 
-  Donor({required this.name, required this.bloodGroup, required this.lastDonation});
+  Donor({
+    required this.id,
+    required this.name,
+    required this.bloodGroup,
+    required this.lastDonation,
+    required this.phone,
+  });
+
+  factory Donor.fromJson(Map<String, dynamic> json) {
+    return Donor(
+      id: json['id'],
+      name: json['name'],
+      bloodGroup: json['bloodGroup'],
+      lastDonation: json['lastDonation'] ?? 'Not available',
+      phone: json['phone'] ?? 'Not provided',
+    );
+  }
 }
 
 class DonorsPage extends StatefulWidget {
@@ -32,172 +52,170 @@ class DonorsPage extends StatefulWidget {
 }
 
 class _DonorsPageState extends State<DonorsPage> {
-  List<Donor> donors = [
-    Donor(name: "Samuel Njoka", bloodGroup: "A+", lastDonation: "05 Jan 2025"),
-    Donor(name: "Madalitso Muwawa", bloodGroup: "O-", lastDonation: "12 Dec 2024"),
-    Donor(name: "Nickson Kalulu", bloodGroup: "B+", lastDonation: "20 Nov 2024"),
-    Donor(name: "Charles Kamwaza", bloodGroup: "AB-", lastDonation: "10 Oct 2024"),
-  ];
-
+  List<Donor> donors = [];
   List<Donor> filteredDonors = [];
+  bool isLoading = true;
+  String errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    filteredDonors = donors;
+    _fetchDonors();
+  }
+
+  Future<void> _fetchDonors() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.138.139:3005/donors'), // Replace with your API endpoint
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          donors = data.map((json) => Donor.fromJson(json)).toList();
+          filteredDonors = donors;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          errorMessage = 'Failed to load donors: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error fetching donors: $e';
+        isLoading = false;
+      });
+    }
   }
 
   void _filterDonors(String query) {
     setState(() {
       filteredDonors = donors
-          .where((donor) => donor.name.toLowerCase().contains(query.toLowerCase()))
+          .where((donor) =>
+              donor.name.toLowerCase().contains(query.toLowerCase()) ||
+              donor.bloodGroup.toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
-  }
-
-  void _onMenuSelected(String option, int index) {
-    if (option == "Update") {
-      _showUpdateDialog(index);
-    } else if (option == "Delete") {
-      setState(() {
-        donors.removeAt(index);
-        filteredDonors = List.from(donors);
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Donor deleted")),
-      );
-    }
-  }
-
-  void _showUpdateDialog(int index) {
-    TextEditingController nameController = TextEditingController(text: donors[index].name);
-    TextEditingController bloodGroupController = TextEditingController(text: donors[index].bloodGroup);
-    TextEditingController lastDonationController = TextEditingController(text: donors[index].lastDonation);
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text("Update Donor"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(labelText: "Name"),
-              ),
-              TextField(
-                controller: bloodGroupController,
-                decoration: InputDecoration(labelText: "Blood Group"),
-              ),
-              TextField(
-                controller: lastDonationController,
-                decoration: InputDecoration(labelText: "Last Donation Date"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  donors[index].name = nameController.text;
-                  donors[index].bloodGroup = bloodGroupController.text;
-                  donors[index].lastDonation = lastDonationController.text;
-                  filteredDonors = List.from(donors);
-                });
-                Navigator.pop(context);
-              },
-              child: Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       body: Padding(
-        padding: EdgeInsets.all(10),
+        padding: const EdgeInsets.all(10),
         child: Column(
           children: [
             TextField(
               onChanged: _filterDonors,
               decoration: InputDecoration(
-                labelText: "Search Donor",
-                prefixIcon: Icon(Icons.search),
+                labelText: "Search Donors",
+                hintText: "Search by name or blood group",
+                prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
+                filled: true,
+                fillColor: Colors.white,
               ),
             ),
-            SizedBox(height: 10),
-            Expanded(
-              child: ListView.builder(
-                itemCount: filteredDonors.length,
-                itemBuilder: (context, index) {
-                  final donor = filteredDonors[index];
-                  return Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 3,
-                    margin: EdgeInsets.symmetric(vertical: 8),
-                    child: Padding(
-                      padding: EdgeInsets.all(15),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  donor.bloodGroup,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red,
+            const SizedBox(height: 10),
+            if (isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (errorMessage.isNotEmpty)
+              Center(child: Text(errorMessage))
+            else if (filteredDonors.isEmpty)
+              const Center(child: Text('No donors found'))
+            else
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _fetchDonors,
+                  child: ListView.builder(
+                    itemCount: filteredDonors.length,
+                    itemBuilder: (context, index) {
+                      final donor = filteredDonors[index];
+                      return Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 3,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(15),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    donor.name,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  donor.name,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: Colors.red,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      donor.bloodGroup,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                SizedBox(height: 5),
-                                Text(
-                                  "Last Donation Date: ${donor.lastDonation}",
-                                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                                ),
-                              ],
-                            ),
-                          ),
-                          PopupMenuButton<String>(
-                            onSelected: (value) => _onMenuSelected(value, index),
-                            itemBuilder: (context) => [
-                              PopupMenuItem(value: "Update", child: Text("Update")),
-                              PopupMenuItem(value: "Delete", child: Text("Delete")),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.calendar_today,
+                                      size: 16, color: Colors.grey),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    "Last Donation: ${donor.lastDonation}",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.phone, size: 16, color: Colors.grey),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    donor.phone,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
-                            icon: Icon(Icons.more_vert),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),

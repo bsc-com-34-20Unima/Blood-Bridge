@@ -42,8 +42,7 @@ class Event {
 
 class EventsApiService {
   // Update with your NestJS server URL
-  final String baseUrl = 'http://10.0.2.2:3004/';  // Use this for Android emulator
-  // final String baseUrl = 'http://192.168.190.139:3000';  // Use this for iOS simulator
+  final String baseUrl = 'http://192.168.138.139:3005';  
   
   // Headers for all requests
   Map<String, String> get headers => {

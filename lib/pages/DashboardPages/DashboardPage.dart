@@ -2,6 +2,8 @@ import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'api_service.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -13,11 +15,32 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
   late Future<List<BloodInventory>> _inventoryFuture;
+  late Future<int> _eventsFuture;
 
   @override
   void initState() {
     super.initState();
     _inventoryFuture = _apiService.fetchInventory();
+    _eventsFuture = _fetchEventCount();
+  }
+
+  Future<int> _fetchEventCount() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://192.168.138.139:3005/events'),
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> eventsJson = json.decode(response.body);
+        return eventsJson.length;
+      } else {
+        debugPrint('Failed to load events: ${response.statusCode}');
+        return 0;
+      }
+    } catch (e) {
+      debugPrint('Error fetching events: $e');
+      return 0;
+    }
   }
 
   @override
@@ -63,11 +86,17 @@ class _DashboardPageState extends State<DashboardPage> {
                     iconColor: Colors.deepPurple,
                   ),
                   const SizedBox(height: 16),
-                  _buildDashboardCard(
-                    title: "Upcoming Drives",
-                    value: "2 events",
-                    icon: LucideIcons.calendarClock,
-                    iconColor: Colors.green,
+                  FutureBuilder<int>(
+                    future: _eventsFuture,
+                    builder: (context, eventSnapshot) {
+                      final eventCount = eventSnapshot.data ?? 0;
+                      return _buildDashboardCard(
+                        title: "Upcoming Events",
+                        value: "$eventCount ${eventCount == 1 ? 'event' : 'events'}",
+                        icon: LucideIcons.calendarClock,
+                        iconColor: Colors.green,
+                      );
+                    },
                   ),
                 ],
               ),

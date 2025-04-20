@@ -56,7 +56,7 @@ class _AchievementsState extends State<Achievements> {
     try {
       // Fetch donor data from the backend
       final donorResponse = await http.get(
-        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+        Uri.parse('http://192.168.137.131:3005/donors/$userId'),
       );
       
       if (donorResponse.statusCode == 200) {

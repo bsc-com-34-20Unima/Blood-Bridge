@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.138.139:3005';
+  static const String baseUrl = 'http://192.168.137.131:3005';
 
   Future<List<BloodInventory>> fetchInventory() async {
     try {

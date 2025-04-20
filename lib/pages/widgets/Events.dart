@@ -53,7 +53,7 @@ class _EventsState extends State<Events> {
       }
       
       final response = await http.get(
-        Uri.parse('http://10.0.2.2:3004/$endpoint'),
+        Uri.parse('http://192.168.137.131:3005/$endpoint'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -149,7 +149,7 @@ class _EventsState extends State<Events> {
   void _registerEvent(String eventId, String donorId) async {
     try {
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3004/events/'), // Correct endpoint for registration
+        Uri.parse('192.168.24.173/events/'), // Correct endpoint for registration
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,

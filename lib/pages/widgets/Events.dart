@@ -1,4 +1,3 @@
-// ignore: file_names
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -15,8 +14,8 @@ class _EventsState extends State<Events> {
   final TextEditingController _searchController = TextEditingController();
   List<Event> _events = [];
   bool _isLoading = true;
-  String _activeFilter = 'Nearby';
-  List<String> _filters = ['Nearby', 'This Week', 'Weekend'];
+  String _activeFilter = 'Upcoming';
+  List<String> _filters = ['Upcoming', 'This Week', 'Weekend'];
 
   // Example donorId for testing
   final String donorId = '12345'; // Replace with actual donor ID from your authentication logic
@@ -33,13 +32,11 @@ class _EventsState extends State<Events> {
     });
 
     try {
-      // Default endpoint
+      // Default endpoint for upcoming events
       String endpoint = 'events';
       
       // Apply filter if selected
-      if (_activeFilter == 'Nearby') {
-        endpoint = 'events/nearby?lat=35.00&lng=-84.00&radius=10';
-      } else if (_activeFilter == 'This Week') {
+      if (_activeFilter == 'This Week') {
         endpoint = 'events/this-week';
       } else if (_activeFilter == 'Weekend') {
         endpoint = 'events/weekend';
@@ -148,12 +145,13 @@ class _EventsState extends State<Events> {
 
   void _registerEvent(String eventId, String donorId) async {
     try {
+      // Fixed endpoint for registration
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3004/events/'), // Correct endpoint for registration
+        Uri.parse('http://10.0.2.2:3004/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,
-          'donorId': donorId, // Include donorId in the request body
+          'donorId': donorId,
         }),
       );
 
@@ -161,10 +159,11 @@ class _EventsState extends State<Events> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registered successfully')),
         );
-        // Optionally, you can refresh the events list or update the local state
+        // Refresh the events list to show updated availability
+        _fetchEvents();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to register')),
+          SnackBar(content: Text('Failed to register: ${response.body}')),
         );
       }
     } catch (e) {
@@ -203,7 +202,7 @@ class _EventsState extends State<Events> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Blood Donation Events',
+                  'Donation Events',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -212,7 +211,7 @@ class _EventsState extends State<Events> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Find and register for upcoming donation drives',
+                  'Find and register for upcoming events',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
@@ -247,23 +246,12 @@ class _EventsState extends State<Events> {
                 
                 const SizedBox(height: 16),
                 
-                // Filter Chips
+                // Filter Pills
                 SizedBox(
                   height: 36,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    children: [
-                      FilterChip(
-                        label: const Icon(Icons.filter_list, size: 16, color: Colors.white),
-                        backgroundColor: Colors.red.shade700,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        onSelected: (_) {},
-                      ),
-                      const SizedBox(width: 8),
-                      ..._filters.map((filter) => _buildFilterChip(filter)).toList(),
-                    ],
+                    children: _filters.map((filter) => _buildFilterPill(filter)).toList(),
                   ),
                 ),
               ],
@@ -275,7 +263,22 @@ class _EventsState extends State<Events> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _events.isEmpty
-                    ? const Center(child: Text('No events found'))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.event_busy, size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No events found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _events.length,
@@ -284,32 +287,17 @@ class _EventsState extends State<Events> {
                             event: _events[index],
                             onRegister: _registerEvent,
                             onViewDetails: _viewDetails,
-                            donorId: donorId, // Pass donorId here
+                            donorId: donorId,
                           );
                         },
                       ),
-          ),
-          
-          // Bottom Navigation
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label) {
+  Widget _buildFilterPill(String label) {
     final bool isSelected = _activeFilter == label;
     
     return Padding(
@@ -330,44 +318,20 @@ class _EventsState extends State<Events> {
       ),
     );
   }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return InkWell(
-      onTap: () {},
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.red.shade600 : Colors.grey,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: isActive ? Colors.red.shade600 : Colors.grey,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class EventCard extends StatelessWidget {
   final Event event;
-  final void Function(String eventId, String donorId) onRegister; // Updated to include donorId
+  final void Function(String eventId, String donorId) onRegister;
   final void Function(String description) onViewDetails;
-  final String donorId; // Accept donorId
+  final String donorId;
 
   const EventCard({
     super.key,
     required this.event,
     required this.onRegister,
     required this.onViewDetails,
-    required this.donorId, // Accept donorId
+    required this.donorId,
   });
 
   @override
@@ -391,7 +355,7 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Event Header
+          // Event Header with date badge
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -400,13 +364,39 @@ class EventCard extends StatelessWidget {
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
-              border: Border(
-                left: BorderSide(color: Colors.red.shade500, width: 4),
-              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Date badge
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade500,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('dd').format(event.eventDate),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('MMM').format(event.eventDate),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,21 +409,15 @@ class EventCard extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${event.startTime} - ${event.endTime}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade600,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    event.distance,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
                   ),
                 ),
               ],
@@ -463,38 +447,6 @@ class EventCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 
-                // Date
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 18, color: Colors.red.shade500),
-                    const SizedBox(width: 12),
-                    Text(
-                      dateFormatter.format(event.eventDate),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Time
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 18, color: Colors.red.shade500),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${event.startTime} - ${event.endTime}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
                 // Available Spots
                 Row(
                   children: [
@@ -516,30 +468,30 @@ class EventCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ElevatedButton(
-                      onPressed: () => onRegister(event.id, donorId), // Pass donorId here
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: event.availableSpots > 0
+                            ? () => onRegister(event.id, donorId)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          disabledBackgroundColor: Colors.grey.shade300,
                         ),
+                        child: const Text('Register'),
                       ),
-                      child: const Text('Register'),
                     ),
+                    const SizedBox(width: 8),
                     TextButton(
                       onPressed: () => onViewDetails(event.description),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.red.shade600,
                       ),
-                      child: Row(
-                        children: [
-                          const Text('View Details'),
-                          const SizedBox(width: 4),
-                          Icon(Icons.chevron_right, size: 16, color: Colors.red.shade600),
-                        ],
-                      ),
+                      child: const Text('Details'),
                     ),
                   ],
                 ),
@@ -588,7 +540,7 @@ class Event {
       endTime: json['endTime'],
       description: json['description'],
       availableSpots: json['availableSpots'] ?? 0,
-      distance: json['distance'] != null ? '${json['distance']} ${json['distanceUnit'] ?? 'miles away'}' : 'Unknown distance',
+      distance: json['distance'] != null ? '${json['distance']} ${json['distanceUnit'] ?? 'miles away'}' : '',
     );
   }
 }

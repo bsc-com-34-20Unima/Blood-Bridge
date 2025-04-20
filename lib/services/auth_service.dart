@@ -1,12 +1,11 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/material.dart';
 
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://192.168.137.232:3004';
+  final String _baseUrl = 'http://10.0.2.2:3004';
   
   // Get stored token
   Future<String?> getToken() async {
@@ -39,16 +38,28 @@ class AuthService {
     return token != null && token.isNotEmpty;
   }
   
-  // Login user
-  Future<Map<String, dynamic>> login(String email, String password) async {
+  // Login user with location
+  Future<Map<String, dynamic>> login(String email, String password, {double? latitude, double? longitude}) async {
     try {
+      // Include location data in login request
+      final Map<String, dynamic> requestBody = {
+        'email': email,
+        'password': password,
+      };
+      
+      // Add location if provided
+      if (latitude != null) {
+        requestBody['latitude'] = latitude;
+      }
+      
+      if (longitude != null) {
+        requestBody['longitude'] = longitude;
+      }
+       
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/login'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+        body: json.encode(requestBody),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -93,14 +104,30 @@ class AuthService {
     }
   }
   
-  // Logout user
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    await prefs.remove('user_id');
-    await prefs.remove('user_role');
-    await prefs.remove('user_name');
+// In your AuthService class
+Future<void> logout() async {
+  try {
+    final token = await getToken();
+    if (token != null) {
+      // Make API call to invalidate token on server
+      await http.post(
+        Uri.parse('$_baseUrl/auth/logout'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+    }
+  } catch (e) {
+    // Continue with local logout even if server logout fails
+    print('Server logout failed: $e');
   }
+  
+  // Clear local storage regardless
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('auth_token');
+  await prefs.remove('user_id');
+  await prefs.remove('user_role');
+  await prefs.remove('user_name');
+  await prefs.remove('location_updated_once');
+}
   
   // Make authenticated request
   Future<http.Response> authenticatedRequest(

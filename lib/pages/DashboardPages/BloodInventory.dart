@@ -60,7 +60,7 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      
+    
       body: FutureBuilder<List<BloodInventory>>(
         future: _inventoryFuture,
         builder: (context, snapshot) {

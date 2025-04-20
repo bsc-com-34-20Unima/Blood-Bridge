@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../services/auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
@@ -21,6 +22,53 @@ class _SignUpPageState extends State<SignUpPage> {
   };
   String? _selectedBloodType;
   bool _isLoading = false;
+  Position? _currentPosition;
+  String _locationStatus = '';
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isLoading = true;
+      _locationStatus = 'Getting location...';
+    });
+
+    try {
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Location services are disabled');
+      }
+
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied');
+      }
+
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _locationStatus = 'Location captured';
+      });
+    } catch (e) {
+      setState(() {
+        _locationStatus = 'Error: ${e.toString()}';
+      });
+      rethrow;
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
@@ -31,7 +79,13 @@ class _SignUpPageState extends State<SignUpPage> {
 
     setState(() => _isLoading = true);
     try {
-      // Create donor data map matching backend expectations
+      // Get location first
+      await _getCurrentLocation();
+      if (_currentPosition == null) {
+        throw Exception('Could not get current location');
+      }
+
+      // Create donor data with location coordinates at the top level
       final donorData = {
         'name': _controllers['name']!.text.trim(),
         'email': _controllers['email']!.text.trim(),
@@ -39,7 +93,9 @@ class _SignUpPageState extends State<SignUpPage> {
         'password': _controllers['password']!.text.trim(),
         'bloodGroup': _selectedBloodType!, 
         'donations': int.parse(_controllers['donations']!.text.trim()),
-        'role': 'donor', // Add role to match backend expectations
+        'role': 'donor',
+        'latitude': _currentPosition!.latitude,  // Changed: Now as top-level property
+        'longitude': _currentPosition!.longitude,  // Changed: Now as top-level property
       };
 
       await _authService.registerDonor(donorData);
@@ -49,7 +105,7 @@ class _SignUpPageState extends State<SignUpPage> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) _showError(e.toString());
+      if (mounted) _showError('Registration failed: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -61,8 +117,7 @@ class _SignUpPageState extends State<SignUpPage> {
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
-      ),
-    );
+    ));
   }
 
   void _showSuccess(String message) {
@@ -79,8 +134,9 @@ class _SignUpPageState extends State<SignUpPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Donor Registration'),
+        title: const Text('Donor Registration', style: TextStyle(fontSize: 24, color: Colors.white)),
         backgroundColor: Colors.red[700],
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -138,18 +194,37 @@ class _SignUpPageState extends State<SignUpPage> {
               ),
               const SizedBox(height: 16),
               _buildBloodTypeDropdown(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+              // Location capture section
+              _currentPosition != null
+                  ? ListTile(
+                      leading: const Icon(Icons.location_on, color: Colors.green),
+                      title: const Text('Location captured'),
+                      subtitle: Text(
+                        'Lat: ${_currentPosition!.latitude.toStringAsFixed(4)}\n'
+                        'Lng: ${_currentPosition!.longitude.toStringAsFixed(4)}',
+                      ),
+                    )
+                  : Text(
+                      _locationStatus,
+                      style: TextStyle(
+                        color: _locationStatus.startsWith('Error') 
+                            ? Colors.red 
+                            : Colors.grey,
+                      ),
+                    ),
+              const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.red,
+                  backgroundColor: Colors.red[700],
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'REGISTER',
-                        style: TextStyle(fontSize: 16),
+                        'Sign Up',
+                        style: TextStyle(fontSize: 16, color: Colors.white),
                       ),
               ),
             ],

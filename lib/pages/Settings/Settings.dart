@@ -1,8 +1,8 @@
 import 'package:bloodbridge/pages/Settings/changepassword.dart';
 import 'package:bloodbridge/pages/Settings/editprofile.dart';
-import 'package:flutter/material.dart';
-import 'package:bloodbridge/services/auth_service.dart';
 import 'package:bloodbridge/pages/login.dart';
+import 'package:bloodbridge/services/auth_service.dart';
+import 'package:flutter/material.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,15 +14,16 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _receiveNotifications = true;
   bool _eventReminders = false;
+  final AuthService _authService = AuthService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.red,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
-        title: Text(
+        title: const Text(
           "Settings",
           style: TextStyle(
             color: Colors.white,
@@ -35,7 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           children: [
             // Account Section
-            Text(
+            const Text(
               "Account Settings",
               style: TextStyle(
                 fontSize: 18,
@@ -44,32 +45,34 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.person, color: Colors.red),
-              title: Text("Edit Profile"),
-              subtitle: Text("Update your name, email, and profile picture"),
-              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+              leading: const Icon(Icons.person, color: Colors.red),
+              title: const Text("Edit Profile"),
+              subtitle: const Text("Update your name, email, and profile picture"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>EditProfilePage()));
+                  MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                );
               },
             ),
             ListTile(
-              leading: Icon(Icons.lock, color: Colors.red),
-              title: Text("Change Password"),
-              subtitle: Text("Update your account password"),
-              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+              leading: const Icon(Icons.lock, color: Colors.red),
+              title: const Text("Change Password"),
+              subtitle: const Text("Update your account password"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) =>ChangePasswordPage()));
+                  MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+                );
               },
             ),
 
-            Divider(),
+            const Divider(),
 
             // Notifications Section
-            Text(
+            const Text(
               "Notifications",
               style: TextStyle(
                 fontSize: 18,
@@ -79,8 +82,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             SwitchListTile(
               activeColor: Colors.red,
-              title: Text("Receive Notifications"),
-              subtitle: Text("Enable or disable all notifications"),
+              title: const Text("Receive Notifications"),
+              subtitle: const Text("Enable or disable all notifications"),
               value: _receiveNotifications,
               onChanged: (bool value) {
                 setState(() {
@@ -90,8 +93,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             SwitchListTile(
               activeColor: Colors.red,
-              title: Text("Event Reminders"),
-              subtitle: Text("Get reminders for upcoming events"),
+              title: const Text("Event Reminders"),
+              subtitle: const Text("Get reminders for upcoming events"),
               value: _eventReminders,
               onChanged: (bool value) {
                 setState(() {
@@ -100,10 +103,10 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
 
-            Divider(),
+            const Divider(),
 
             // Privacy Section
-            Text(
+            const Text(
               "Privacy",
               style: TextStyle(
                 fontSize: 18,
@@ -112,28 +115,28 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             ListTile(
-              leading: Icon(Icons.privacy_tip, color: Colors.red),
-              title: Text("Privacy Policy"),
-              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+              leading: const Icon(Icons.privacy_tip, color: Colors.red),
+              title: const Text("Privacy Policy"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
               onTap: () {
                 // Navigate to Privacy Policy Page
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_forever, color: Colors.red),
-              title: Text("Delete Account"),
-              trailing: Icon(Icons.arrow_forward_ios, size: 18),
+              leading: const Icon(Icons.delete_forever, color: Colors.red),
+              title: const Text("Delete Account"),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
               onTap: () {
                 _showDeleteAccountDialog(context);
               },
             ),
 
-            Divider(),
+            const Divider(),
 
             // Logout Section
             ListTile(
-              leading: Icon(Icons.logout, color: Colors.red),
-              title: Text("Logout"),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout"),
               onTap: () {
                 _showLogoutConfirmationDialog(context);
               },
@@ -149,12 +152,12 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Delete Account"),
-          content: Text(
+          title: const Text("Delete Account"),
+          content: const Text(
               "Are you sure you want to delete your account? This action cannot be undone."),
           actions: [
             TextButton(
-              child: Text("Cancel"),
+              child: const Text("Cancel"),
               onPressed: () {
                 Navigator.pop(context);
               },
@@ -163,7 +166,7 @@ class _SettingsPageState extends State<SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text(
+              child: const Text(
                 "Delete",
                 style: TextStyle(color: Colors.white),
               ),
@@ -178,32 +181,56 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showLogoutConfirmationDialog(BuildContext context) {
-    showDialog(
+  Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
+    bool? shouldLogout = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Logout"),
-          content: Text("Are you sure you want to log out?"),
+          title: const Text("Logout"),
+          content: const Text("Are you sure you want to log out?"),
           actions: [
             TextButton(
-              child: Text("Cancel"),
-              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(context, false),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: Text("Logout"),
-              onPressed: () {
-                // Handle logout functionality
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
-              },
+              child: const Text("Logout"),
+              onPressed: () => Navigator.pop(context, true),
             ),
           ],
         );
       },
     );
+
+    if (shouldLogout == true) {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        await _authService.logout();
+        navigator.pop(); // Close loading dialog
+        
+        // Navigate to login screen and clear navigation stack
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      } catch (e) {
+        navigator.pop(); // Close loading dialog
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Logout failed: ${e.toString()}')),
+        );
+      }
+    }
   }
 }

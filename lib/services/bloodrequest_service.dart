@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class BloodRequestService {
   final AuthService _authService = AuthService();
-  final String baseUrl = 'http://192.168.137.190:3004';
+  final String baseUrl = 'http://192.168.137.86:3004';
 
   Future<List<dynamic>> requestDonorsByDistance({
     required String bloodType,

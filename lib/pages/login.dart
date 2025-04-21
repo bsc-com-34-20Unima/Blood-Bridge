@@ -23,8 +23,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+  final String _baseUrl = 'http://192.168.137.86:3004';
   final AuthService _authService = AuthService();
-  final String _baseUrl = 'http://192.168.190.139:3005';
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
@@ -41,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
           longitude: position.longitude,
         );
 
-        // 3. Navigate to appropriate dashboard
+        // 3. Navigate to appropriate dashboard based on role
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 15),
+          timeLimit: Duration(seconds: 100),
         ),
       );
     } catch (e) {

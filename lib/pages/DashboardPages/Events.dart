@@ -20,10 +20,29 @@ class _EventsPageState extends State<EventsPage> {
   final Color darkRed = const Color(0xFF8B0000);
   final Color lightRed = const Color(0xFFFF5252);
 
+  // Controllers for add/edit dialogs
+  final titleController = TextEditingController();
+  final dateController = TextEditingController();
+  final startTimeController = TextEditingController();
+  final endTimeController = TextEditingController();
+  final locationController = TextEditingController();
+  final descriptionController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     _loadUserId();
+  }
+
+  @override
+  void dispose() {
+    titleController.dispose();
+    dateController.dispose();
+    startTimeController.dispose();
+    endTimeController.dispose();
+    locationController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserId() async {
@@ -40,9 +59,8 @@ class _EventsPageState extends State<EventsPage> {
     });
 
     try {
-      // Update with your NestJS server URL
       final response = await http.get(
-        Uri.parse('http://192.168.190.139:3005/events'),
+        Uri.parse('http://:3004/events'),
       );
       
       if (response.statusCode == 200) {
@@ -52,15 +70,19 @@ class _EventsPageState extends State<EventsPage> {
         });
       } else {
         debugPrint('Failed to load events: ${response.statusCode}');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load events: ${response.statusCode}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to load events: ${response.statusCode}')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error fetching events: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error fetching events: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching events: $e')),
+        );
+      }
     } finally {
       setState(() {
         isLoading = false;
@@ -71,76 +93,94 @@ class _EventsPageState extends State<EventsPage> {
   Future<void> _createEvent(Map<String, dynamic> eventData) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.190.139:3005/events'),
+        Uri.parse('http://10.0.2.2:3004/events'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(eventData),
       );
       
       if (response.statusCode == 201) {
-        _fetchEvents(); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event created successfully')),
-        );
+        _fetchEvents();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event created successfully')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create event: ${response.statusCode} - ${response.body}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create event: ${response.statusCode} - ${response.body}')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error creating event: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error creating event: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error creating event: $e')),
+        );
+      }
     }
   }
 
   Future<void> _updateEvent(String id, Map<String, dynamic> eventData) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://192.168.190.139:3005/events/$id'),
+        Uri.parse('http://10.0.2.2/events/$id'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(eventData),
       );
       
       if (response.statusCode == 200) {
-        _fetchEvents(); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event updated successfully')),
-        );
+        _fetchEvents();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event updated successfully')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update event: ${response.statusCode}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update event: ${response.statusCode}')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error updating event: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating event: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating event: $e')),
+        );
+      }
     }
   }
 
   Future<void> _deleteEvent(String id) async {
     try {
       final response = await http.delete(
-        Uri.parse('http://192.168.190.139:3005/events/$id'),
+        Uri.parse('http://10.0.2.2:3004/events/$id'),
       );
       
       if (response.statusCode == 204) {
-        _fetchEvents(); // Refresh the list
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event deleted successfully')),
-        );
+        _fetchEvents();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Event deleted successfully')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to delete event: ${response.statusCode}')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete event: ${response.statusCode}')),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error deleting event: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting event: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error deleting event: $e')),
+        );
+      }
     }
   }
 
@@ -162,6 +202,8 @@ class _EventsPageState extends State<EventsPage> {
             children: [
               Text("Date: ${_formatDate(event['eventDate'])}"),
               const SizedBox(height: 4),
+              Text("Time: ${event['startTime']} - ${event['endTime']}"),
+              const SizedBox(height: 4),
               Text("Location: ${event['location'] ?? ''}"),
               const SizedBox(height: 8),
               Text(event['description'] ?? ''),
@@ -174,9 +216,7 @@ class _EventsPageState extends State<EventsPage> {
                 foregroundColor: Colors.white,
               ),
               child: const Text("Close"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
           ],
         );
@@ -185,10 +225,13 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   void _showAddEventDialog(BuildContext context) {
-    final titleController = TextEditingController();
-    final dateController = TextEditingController();
-    final locationController = TextEditingController();
-    final descriptionController = TextEditingController();
+    // Clear all controllers first
+    titleController.clear();
+    dateController.clear();
+    startTimeController.clear();
+    endTimeController.clear();
+    locationController.clear();
+    descriptionController.clear();
 
     showDialog(
       context: context,
@@ -206,29 +249,78 @@ class _EventsPageState extends State<EventsPage> {
                 TextField(
                   controller: dateController,
                   readOnly: true,
-                  decoration: const InputDecoration(labelText: "Event Date (YYYY-MM-DD)"),
+                  decoration: const InputDecoration(labelText: "Event Date"),
                   onTap: () async {
-                    DateTime? pickedDate = await showDatePicker(
+                    final DateTime? pickedDate = await showDatePicker(
                       context: context,
                       initialDate: DateTime.now(),
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2101),
-                      builder: (BuildContext context, Widget? child) {
-                        return Theme(
-                          data: ThemeData.light().copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: darkRed,
-                              onPrimary: Colors.white,
-                              onSurface: Colors.black,
-                            ),
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
                           ),
-                          child: child!,
-                        );
-                      },
+                        ),
+                        child: child!,
+                      ),
                     );
                     if (pickedDate != null) {
-                      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-                      dateController.text = formattedDate;
+                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                    }
+                  },
+                ),
+                TextField(
+                  controller: startTimeController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "Start Time"),
+                  onTap: () async {
+                    final TimeOfDay? pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (pickedTime != null) {
+                      startTimeController.text = 
+                        "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                        "${pickedTime.minute.toString().padLeft(2, '0')}";
+                    }
+                  },
+                ),
+                TextField(
+                  controller: endTimeController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "End Time"),
+                  onTap: () async {
+                    final TimeOfDay? pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: TimeOfDay.now(),
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (pickedTime != null) {
+                      endTimeController.text = 
+                        "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                        "${pickedTime.minute.toString().padLeft(2, '0')}";
                     }
                   },
                 ),
@@ -239,6 +331,7 @@ class _EventsPageState extends State<EventsPage> {
                 TextField(
                   controller: descriptionController,
                   decoration: const InputDecoration(labelText: "Description"),
+                  maxLines: 3,
                 ),
               ],
             ),
@@ -250,9 +343,7 @@ class _EventsPageState extends State<EventsPage> {
                 foregroundColor: Colors.white,
               ),
               child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -261,9 +352,10 @@ class _EventsPageState extends State<EventsPage> {
               ),
               child: const Text("Add"),
               onPressed: () async {
-                // Validate fields
                 if (titleController.text.isEmpty ||
                     dateController.text.isEmpty ||
+                    startTimeController.text.isEmpty ||
+                    endTimeController.text.isEmpty ||
                     locationController.text.isEmpty ||
                     descriptionController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -271,22 +363,34 @@ class _EventsPageState extends State<EventsPage> {
                   );
                   return;
                 }
-                
-                // Format the date for the NestJS API
-                final date = DateTime.parse('${dateController.text}T00:00:00.000Z');
-                
+
+                // Validate time sequence
+                final start = startTimeController.text.split(':');
+                final end = endTimeController.text.split(':');
+                final startHour = int.parse(start[0]);
+                final startMin = int.parse(start[1]);
+                final endHour = int.parse(end[0]);
+                final endMin = int.parse(end[1]);
+
+                if (endHour < startHour || (endHour == startHour && endMin <= startMin)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("End time must be after start time")),
+                  );
+                  return;
+                }
+
                 final eventData = {
                   'title': titleController.text,
                   'description': descriptionController.text,
-                  'eventDate': date.toIso8601String(),
+                  'eventDate': DateTime.parse('${dateController.text}T00:00:00.000Z').toIso8601String(),
+                  'startTime': startTimeController.text,
+                  'endTime': endTimeController.text,
                   'location': locationController.text,
                   'isPublished': true,
                 };
 
                 await _createEvent(eventData);
-                if (mounted) {
-                  Navigator.pop(context);
-                }
+                if (mounted) Navigator.pop(context);
               },
             ),
           ],
@@ -297,11 +401,12 @@ class _EventsPageState extends State<EventsPage> {
 
   void _showEditEventDialog(BuildContext context, Map<String, dynamic> event) {
     final String id = event['id'];
-    final titleController = TextEditingController(text: event['title']);
-    final dateController = TextEditingController(
-        text: DateFormat('yyyy-MM-dd').format(DateTime.parse(event['eventDate'])));
-    final locationController = TextEditingController(text: event['location']);
-    final descriptionController = TextEditingController(text: event['description']);
+    titleController.text = event['title'] ?? '';
+    dateController.text = DateFormat('yyyy-MM-dd').format(DateTime.parse(event['eventDate']));
+    startTimeController.text = event['startTime'] ?? '';
+    endTimeController.text = event['endTime'] ?? '';
+    locationController.text = event['location'] ?? '';
+    descriptionController.text = event['description'] ?? '';
 
     showDialog(
       context: context,
@@ -319,7 +424,7 @@ class _EventsPageState extends State<EventsPage> {
                 TextField(
                   controller: dateController,
                   readOnly: true,
-                  decoration: const InputDecoration(labelText: "Event Date (YYYY-MM-DD)"),
+                  decoration: const InputDecoration(labelText: "Event Date"),
                   onTap: () async {
                     DateTime initialDate;
                     try {
@@ -327,27 +432,86 @@ class _EventsPageState extends State<EventsPage> {
                     } catch (e) {
                       initialDate = DateTime.now();
                     }
-                    DateTime? pickedDate = await showDatePicker(
+                    final DateTime? pickedDate = await showDatePicker(
                       context: context,
                       initialDate: initialDate,
                       firstDate: DateTime(2000),
                       lastDate: DateTime(2101),
-                      builder: (BuildContext context, Widget? child) {
-                        return Theme(
-                          data: ThemeData.light().copyWith(
-                            colorScheme: ColorScheme.light(
-                              primary: darkRed,
-                              onPrimary: Colors.white,
-                              onSurface: Colors.black,
-                            ),
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
                           ),
-                          child: child!,
-                        );
-                      },
+                        ),
+                        child: child!,
+                      ),
                     );
                     if (pickedDate != null) {
-                      String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate);
-                      dateController.text = formattedDate;
+                      dateController.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+                    }
+                  },
+                ),
+                TextField(
+                  controller: startTimeController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "Start Time"),
+                  onTap: () async {
+                    final parts = startTimeController.text.split(':');
+                    final initialTime = TimeOfDay(
+                      hour: parts.isNotEmpty ? int.parse(parts[0]) : 9,
+                      minute: parts.length > 1 ? int.parse(parts[1]) : 0,
+                    );
+                    final TimeOfDay? pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: initialTime,
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (pickedTime != null) {
+                      startTimeController.text = 
+                        "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                        "${pickedTime.minute.toString().padLeft(2, '0')}";
+                    }
+                  },
+                ),
+                TextField(
+                  controller: endTimeController,
+                  readOnly: true,
+                  decoration: const InputDecoration(labelText: "End Time"),
+                  onTap: () async {
+                    final parts = endTimeController.text.split(':');
+                    final initialTime = TimeOfDay(
+                      hour: parts.isNotEmpty ? int.parse(parts[0]) : 17,
+                      minute: parts.length > 1 ? int.parse(parts[1]) : 0,
+                    );
+                    final TimeOfDay? pickedTime = await showTimePicker(
+                      context: context,
+                      initialTime: initialTime,
+                      builder: (context, child) => Theme(
+                        data: ThemeData.light().copyWith(
+                          colorScheme: ColorScheme.light(
+                            primary: darkRed,
+                            onPrimary: Colors.white,
+                            onSurface: Colors.black,
+                          ),
+                        ),
+                        child: child!,
+                      ),
+                    );
+                    if (pickedTime != null) {
+                      endTimeController.text = 
+                        "${pickedTime.hour.toString().padLeft(2, '0')}:"
+                        "${pickedTime.minute.toString().padLeft(2, '0')}";
                     }
                   },
                 ),
@@ -358,6 +522,7 @@ class _EventsPageState extends State<EventsPage> {
                 TextField(
                   controller: descriptionController,
                   decoration: const InputDecoration(labelText: "Description"),
+                  maxLines: 3,
                 ),
               ],
             ),
@@ -369,9 +534,7 @@ class _EventsPageState extends State<EventsPage> {
                 foregroundColor: Colors.white,
               ),
               child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -380,9 +543,10 @@ class _EventsPageState extends State<EventsPage> {
               ),
               child: const Text("Update"),
               onPressed: () async {
-                // Validate fields
                 if (titleController.text.isEmpty ||
                     dateController.text.isEmpty ||
+                    startTimeController.text.isEmpty ||
+                    endTimeController.text.isEmpty ||
                     locationController.text.isEmpty ||
                     descriptionController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -390,21 +554,33 @@ class _EventsPageState extends State<EventsPage> {
                   );
                   return;
                 }
-                
-                // Format the date for the NestJS API
-                final date = DateTime.parse('${dateController.text}T00:00:00.000Z');
-                
+
+                // Validate time sequence
+                final start = startTimeController.text.split(':');
+                final end = endTimeController.text.split(':');
+                final startHour = int.parse(start[0]);
+                final startMin = int.parse(start[1]);
+                final endHour = int.parse(end[0]);
+                final endMin = int.parse(end[1]);
+
+                if (endHour < startHour || (endHour == startHour && endMin <= startMin)) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("End time must be after start time")),
+                  );
+                  return;
+                }
+
                 final eventData = {
                   'title': titleController.text,
                   'description': descriptionController.text,
-                  'eventDate': date.toIso8601String(),
+                  'eventDate': DateTime.parse('${dateController.text}T00:00:00.000Z').toIso8601String(),
+                  'startTime': startTimeController.text,
+                  'endTime': endTimeController.text,
                   'location': locationController.text,
                 };
 
                 await _updateEvent(id, eventData);
-                if (mounted) {
-                  Navigator.pop(context);
-                }
+                if (mounted) Navigator.pop(context);
               },
             ),
           ],
@@ -427,9 +603,7 @@ class _EventsPageState extends State<EventsPage> {
                 foregroundColor: Colors.white,
               ),
               child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
+              onPressed: () => Navigator.pop(context),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -439,9 +613,7 @@ class _EventsPageState extends State<EventsPage> {
               child: const Text("Delete"),
               onPressed: () async {
                 await _deleteEvent(event['id']);
-                if (mounted) {
-                  Navigator.pop(context);
-                }
+                if (mounted) Navigator.pop(context);
               },
             ),
           ],
@@ -453,17 +625,16 @@ class _EventsPageState extends State<EventsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Top bar with add button and refresh button on the same line
             Padding(
               padding: const EdgeInsets.only(top: 30.0, bottom: 5.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Add Event Button
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add),
                     label: const Text("Add Event"),
@@ -475,12 +646,8 @@ class _EventsPageState extends State<EventsPage> {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     ),
-                    onPressed: () {
-                      _showAddEventDialog(context);
-                    },
+                    onPressed: () => _showAddEventDialog(context),
                   ),
-                  
-                  // Refresh Button
                   IconButton(
                     icon: Icon(Icons.refresh, color: darkRed, size: 28),
                     onPressed: _fetchEvents,
@@ -489,13 +656,11 @@ class _EventsPageState extends State<EventsPage> {
                 ],
               ),
             ),
-            
-            // Events List
             Expanded(
               child: isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : events.isEmpty
-                      ? const Center(child: Text("No events found."))
+                      ? const Center(child: Text("No events found"))
                       : ListView.builder(
                           itemCount: events.length,
                           itemBuilder: (context, index) {
@@ -520,12 +685,13 @@ class _EventsPageState extends State<EventsPage> {
                                   children: [
                                     const SizedBox(height: 4),
                                     Text("Date: ${_formatDate(event['eventDate'])}"),
+                                    Text("Time: ${event['startTime']} - ${event['endTime']}"),
                                     Text("Location: ${event['location'] ?? ''}"),
                                   ],
                                 ),
                                 trailing: PopupMenuButton<String>(
                                   icon: const Icon(Icons.more_vert),
-                                  onSelected: (String value) {
+                                  onSelected: (value) {
                                     switch (value) {
                                       case 'edit':
                                         _showEditEventDialog(context, event);
@@ -538,8 +704,8 @@ class _EventsPageState extends State<EventsPage> {
                                         break;
                                     }
                                   },
-                                  itemBuilder: (context) => <PopupMenuEntry<String>>[
-                                    const PopupMenuItem<String>(
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem<String>(
                                       value: 'edit',
                                       child: Row(
                                         children: [
@@ -549,7 +715,7 @@ class _EventsPageState extends State<EventsPage> {
                                         ],
                                       ),
                                     ),
-                                    const PopupMenuItem<String>(
+                                    PopupMenuItem<String>(
                                       value: 'delete',
                                       child: Row(
                                         children: [
@@ -559,7 +725,7 @@ class _EventsPageState extends State<EventsPage> {
                                         ],
                                       ),
                                     ),
-                                    const PopupMenuItem<String>(
+                                    PopupMenuItem<String>(
                                       value: 'info',
                                       child: Row(
                                         children: [
@@ -571,6 +737,7 @@ class _EventsPageState extends State<EventsPage> {
                                     ),
                                   ],
                                 ),
+                                onTap: () => _showEventDetailsDialog(context, event),
                               ),
                             );
                           },

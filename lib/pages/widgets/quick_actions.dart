@@ -1,4 +1,4 @@
-// lib/widgets/quick_actions.dart
+//lib/widgets/quick_actions.dart
 import 'package:bloodbridge/pages/widgets/achievements.dart';
 import 'package:bloodbridge/screens/donation_centers/donation_centers_screen.dart';
 import 'package:bloodbridge/screens/schedule_donation/schedule_donation_screen.dart';
@@ -38,7 +38,7 @@ class QuickActions extends StatelessWidget {
             () => Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => Achievements(donations:0,),
+                builder: (context) => Achievements(),
               ),
             ),
           ),

@@ -93,7 +93,6 @@ class _SignUpPageState extends State<SignUpPage> {
         'password': _controllers['password']!.text.trim(),
         'bloodGroup': _selectedBloodType!, 
         'donations': int.parse(_controllers['donations']!.text.trim()),
-        'role': 'donor',
         'latitude': _currentPosition!.latitude,  // Changed: Now as top-level property
         'longitude': _currentPosition!.longitude,  // Changed: Now as top-level property
       };

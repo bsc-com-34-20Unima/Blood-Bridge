@@ -4,6 +4,22 @@ import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Enum to track eligibility status
+enum EligibilityStatus {
+  eligible,
+  almostEligible,
+  notEligible,
+  unknown
+}
+
+// Adding enum for donor status
+enum DonorStatus {
+  ACTIVE,
+  PENDING,
+  RESTRICTED,
+  INACTIVE
+}
+
 class ProfileSummary extends StatefulWidget {
   const ProfileSummary({super.key});
 
@@ -18,6 +34,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   String? userId;
   DateTime? nextEligibilityDate;
   late TabController _tabController;
+  DonorStatus? donorStatus;
   
   // Define the red-ambient gradient colors
   final Color darkRed = const Color(0xFF8B0000);
@@ -57,19 +74,23 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     try {
       // Fetch donor data
       final donorResponse = await http.get(
-        Uri.parse('http://192.168.137.190:3004/donors/$userId'),
+        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
       );
       
       if (donorResponse.statusCode == 200) {
         final donorJson = json.decode(donorResponse.body);
         setState(() {
           donorData = donorJson;
+          // Parse the donor status from the API response
+          if (donorData.containsKey('status') && donorData['status'] != null) {
+            donorStatus = _parseDonorStatus(donorData['status']);
+          }
         });
         
         // Fetch blood type data using blood group directly
         if (donorData.containsKey('bloodGroup') && donorData['bloodGroup'] != null) {
           final bloodGroupResponse = await http.get(
-            Uri.parse('http://192.168.190.139:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
+            Uri.parse('http://10.0.2.2:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
           );
           
           if (bloodGroupResponse.statusCode == 200) {
@@ -91,6 +112,50 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     }
   }
 
+  // Parse the donor status string from the API into the enum
+  DonorStatus _parseDonorStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+        return DonorStatus.ACTIVE;
+      case 'PENDING':
+        return DonorStatus.PENDING;
+      case 'RESTRICTED':
+        return DonorStatus.RESTRICTED;
+      case 'INACTIVE':
+        return DonorStatus.INACTIVE;
+      default:
+        return DonorStatus.INACTIVE;
+    }
+  }
+
+  // Get color based on the donor status
+  Color _getDonorStatusColor(DonorStatus status) {
+    switch (status) {
+      case DonorStatus.ACTIVE:
+        return green;
+      case DonorStatus.PENDING:
+        return orange;
+      case DonorStatus.RESTRICTED:
+        return darkRed;
+      case DonorStatus.INACTIVE:
+        return Colors.grey;
+    }
+  }
+
+  // Get text for donor status
+  String _getDonorStatusText(DonorStatus status) {
+    switch (status) {
+      case DonorStatus.ACTIVE:
+        return "Active";
+      case DonorStatus.PENDING:
+        return "Pending";
+      case DonorStatus.RESTRICTED:
+        return "Restricted";
+      case DonorStatus.INACTIVE:
+        return "Inactive";
+    }
+  }
+
   void _calculateNextEligibility() {
     if (donorData.containsKey('lastDonation') && donorData['lastDonation'] != null) {
       final lastDonation = DateTime.parse(donorData['lastDonation']);
@@ -102,7 +167,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   Future<void> _updateLastDonation(DateTime selectedDate) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://192.168.190.139:3004/donors/$userId'),
+        Uri.parse('http://192.168.137.86:3004/donors/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'lastDonation': selectedDate.toIso8601String(),
@@ -245,6 +310,19 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                     style: const TextStyle(color: Colors.white, fontSize: 14.0),
                   ),
                 ),
+                // Donor Status Indicator
+                if (donorStatus != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                    decoration: BoxDecoration(
+                      color: _getDonorStatusColor(donorStatus!),
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    child: Text(
+                      _getDonorStatusText(donorStatus!),
+                      style: const TextStyle(color: Colors.white, fontSize: 14.0),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -350,7 +428,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                     child: TabBarView(
                       controller: _tabController,
                       children: [
-                        // Message Tab
+                        // Message Tab with Donor Status
                         _buildMessageTab(),
                         
                         // Blood Type Tab
@@ -406,9 +484,10 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     );
   }
 
-  Widget _buildMessageTab() {
-    return Padding(
-      padding: const EdgeInsets.all(20.0),
+ Widget _buildMessageTab() {
+  return Padding(
+    padding: const EdgeInsets.all(20.0),
+    child: SingleChildScrollView(  // Add this SingleChildScrollView wrapper
       child: Card(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -451,10 +530,45 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                   color: Colors.grey,
                 ),
               ),
-              const Spacer(),
+              // Show current donor status
+              const SizedBox(height: 20),
+              if (donorStatus != null) ...[
+                const Divider(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Container(
+                      height: 16,
+                      width: 16,
+                      decoration: BoxDecoration(
+                        color: _getDonorStatusColor(donorStatus!),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      "Account Status: ${_getDonorStatusText(donorStatus!)}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: _getDonorStatusColor(donorStatus!),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _getDonorStatusDescription(donorStatus!),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),  // Replace Spacer() with SizedBox
               Center(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: donorStatus == DonorStatus.ACTIVE ? () {} : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: darkRed,
                     foregroundColor: Colors.white,
@@ -462,15 +576,32 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                       borderRadius: BorderRadius.circular(20),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                    disabledBackgroundColor: Colors.grey,
                   ),
                   child: const Text("Schedule Donation"),
                 ),
               ),
+              const SizedBox(height: 10),  // Add some bottom padding
             ],
           ),
         ),
       ),
-    );
+    ),
+  );
+}
+
+  // Get description based on donor status
+  String _getDonorStatusDescription(DonorStatus status) {
+    switch (status) {
+      case DonorStatus.ACTIVE:
+        return "Your account is active. You can schedule donations when eligible.";
+      case DonorStatus.PENDING:
+        return "Your account is pending verification. Please wait for administrator approval.";
+      case DonorStatus.RESTRICTED:
+        return "Your account has been restricted. Please contact support for more information.";
+      case DonorStatus.INACTIVE:
+        return "Your account is currently inactive. Please update your profile to activate it.";
+    }
   }
 
   Widget _buildBloodTypeTab(String bloodGroup) {
@@ -722,12 +853,4 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
       ),
     );
   }
-}
-
-// Enum to track eligibility status
-enum EligibilityStatus {
-  eligible,
-  almostEligible,
-  notEligible,
-  unknown
 }

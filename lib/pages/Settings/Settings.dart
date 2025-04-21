@@ -52,7 +52,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const EditProfilePage()),
+                  MaterialPageRoute(builder: (context) => EditProfilePage()),
                 );
               },
             ),
@@ -64,7 +64,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+                  MaterialPageRoute(builder: (context) => ChangePasswordPage()),
                 );
               },
             ),
@@ -148,34 +148,82 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
+    bool _isDeleting = false;
+
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text("Delete Account"),
-          content: const Text(
-              "Are you sure you want to delete your account? This action cannot be undone."),
-          actions: [
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () {
-                Navigator.pop(context);
-              },
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: const Text(
-                "Delete",
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: () {
-                // Handle account deletion
-                Navigator.pop(context);
-              },
-            ),
-          ],
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text("Delete Account"),
+              content: const Text(
+                  "Are you sure you want to delete your account? This action cannot be undone."),
+              actions: [
+                TextButton(
+                  child: const Text("Cancel"),
+                  onPressed: _isDeleting ? null : () {
+                    Navigator.pop(context);
+                  },
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
+                  child: _isDeleting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          "Delete",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                  onPressed: _isDeleting
+                      ? null
+                      : () async {
+                          setState(() {
+                            _isDeleting = true;
+                          });
+
+                          try {
+                            await _authService.deleteAccount();
+                            
+                            // Close the dialog and navigate to login screen
+                            if (context.mounted) {
+                              Navigator.pop(context); // Close dialog
+                              
+                              // Navigate to login screen and clear navigation stack
+                              Navigator.of(context).pushAndRemoveUntil(
+                                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                (route) => false,
+                              );
+                              
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Account deleted successfully')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              setState(() {
+                                _isDeleting = false;
+                              });
+                              
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to delete account: ${e.toString()}')),
+                              );
+                            }
+                          }
+                        },
+                ),
+              ],
+            );
+          }
         );
       },
     );

@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'api_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:bloodbridge/services/auth_service.dart'; // Update import path if needed
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -14,20 +15,61 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final ApiService _apiService = ApiService();
+  final AuthService _authService = AuthService();
   late Future<List<BloodInventory>> _inventoryFuture;
   late Future<int> _eventsFuture;
+  late Future<int> _requestsFuture;
 
   @override
   void initState() {
     super.initState();
     _inventoryFuture = _apiService.fetchInventory();
     _eventsFuture = _fetchEventCount();
+    _requestsFuture = _fetchRequestCount();
+  }
+
+  Future<int> _fetchRequestCount() async {
+    try {
+      final userId = await _authService.getUserId();
+      final userRole = await _authService.getUserRole();
+      
+      // Only fetch requests if user is a hospital
+      if (userRole != UserRole.hospital || userId == null) {
+        return 0;
+      }
+      
+      final token = await _authService.getToken();
+      if (token == null) {
+        debugPrint('No auth token found');
+        return 0;
+      }
+      
+      // Use authenticated request through AuthService
+      final response = await _authService.authenticatedRequest(
+        'blood-requests/hospital/$userId',
+        method: 'GET',
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> requestsJson = json.decode(response.body);
+        // Filter for pending requests only
+        final pendingRequests = requestsJson.where((req) => 
+            req['status'] == 'PENDING' || req['status'] == 'pending').toList();
+        return pendingRequests.length;
+      } else {
+        debugPrint('Failed to load requests: ${response.statusCode}');
+        return 0;
+      }
+    } catch (e) {
+      debugPrint('Error fetching requests: $e');
+      return 0;
+    }
   }
 
   Future<int> _fetchEventCount() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3004/events'),
+        Uri.parse('http://192.168.137.131:3005/events'),
       );
       
       if (response.statusCode == 200) {
@@ -72,11 +114,33 @@ class _DashboardPageState extends State<DashboardPage> {
                     iconColor: Colors.redAccent,
                   ),
                   const SizedBox(height: 16),
-                  _buildDashboardCard(
-                    title: "Pending Requests",
-                    value: "8 requests",
-                    icon: LucideIcons.fileClock,
-                    iconColor: Colors.orange,
+                  FutureBuilder<int>(
+                    future: _requestsFuture,
+                    builder: (context, requestSnapshot) {
+                      if (requestSnapshot.connectionState == ConnectionState.waiting) {
+                        return _buildDashboardCard(
+                          title: "Pending Requests",
+                          value: "Loading...",
+                          icon: LucideIcons.fileClock,
+                          iconColor: Colors.orange,
+                        );
+                      } else if (requestSnapshot.hasError) {
+                        return _buildDashboardCard(
+                          title: "Pending Requests",
+                          value: "Error loading",
+                          icon: LucideIcons.fileClock,
+                          iconColor: Colors.orange,
+                        );
+                      }
+                      
+                      final requestCount = requestSnapshot.data ?? 0;
+                      return _buildDashboardCard(
+                        title: "Pending Requests",
+                        value: "$requestCount ${requestCount == 1 ? 'request' : 'requests'}",
+                        icon: LucideIcons.fileClock,
+                        iconColor: Colors.orange,
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   _buildDashboardCard(
@@ -89,6 +153,22 @@ class _DashboardPageState extends State<DashboardPage> {
                   FutureBuilder<int>(
                     future: _eventsFuture,
                     builder: (context, eventSnapshot) {
+                      if (eventSnapshot.connectionState == ConnectionState.waiting) {
+                        return _buildDashboardCard(
+                          title: "Upcoming Events",
+                          value: "Loading...",
+                          icon: LucideIcons.calendarClock,
+                          iconColor: Colors.green,
+                        );
+                      } else if (eventSnapshot.hasError) {
+                        return _buildDashboardCard(
+                          title: "Upcoming Events",
+                          value: "Error loading",
+                          icon: LucideIcons.calendarClock,
+                          iconColor: Colors.green,
+                        );
+                      }
+                      
                       final eventCount = eventSnapshot.data ?? 0;
                       return _buildDashboardCard(
                         title: "Upcoming Events",

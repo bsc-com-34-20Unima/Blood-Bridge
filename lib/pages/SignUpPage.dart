@@ -24,6 +24,21 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
   Position? _currentPosition;
   String _locationStatus = '';
+  bool _policyAgreed = false;
+
+  // List of policies that users must agree to
+  final List<String> _policies = [
+    'Be ready to accept change of status if there is a defect in your blood',
+    'Be ready to seek medical attention if status changes',
+    'Be available to donate if status is okay and you are eligible',
+    'Update the donation date after each donation',
+    'Wait a full recovery period before your next donation (typically 56 days for whole blood)',
+    'Maintain good health and inform the donation center of any new medications',
+    'Do not donate when you are sick, have a fever, or feel unwell',
+    'Inform the donation center of any recent travel to areas with endemic diseases',
+    'Disclose complete and accurate medical history',
+    'Follow all pre and post-donation instructions provided by staff'
+  ];
 
   Future<void> _getCurrentLocation() async {
     setState(() {
@@ -76,6 +91,10 @@ class _SignUpPageState extends State<SignUpPage> {
       _showError('Please select your blood type');
       return;
     }
+    if (!_policyAgreed) {
+      _showError('You must agree to the donor policies');
+      return;
+    }
 
     setState(() => _isLoading = true);
     try {
@@ -91,10 +110,10 @@ class _SignUpPageState extends State<SignUpPage> {
         'email': _controllers['email']!.text.trim(),
         'phone': _controllers['phone']!.text.trim(),
         'password': _controllers['password']!.text.trim(),
-        'bloodGroup': _selectedBloodType!, 
+        'bloodGroup': _selectedBloodType!,
         'donations': int.parse(_controllers['donations']!.text.trim()),
-        'latitude': _currentPosition!.latitude,  // Changed: Now as top-level property
-        'longitude': _currentPosition!.longitude,  // Changed: Now as top-level property
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
       };
 
       await _authService.registerDonor(donorData);
@@ -110,13 +129,61 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
+  void _showPolicyDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Donor Policies',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700])),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'As a blood donor, I agree to:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 10),
+                ..._policies.map((policy) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Expanded(child: Text(policy, style: const TextStyle(fontSize: 14))),
+                        ],
+                      ),
+                    )),
+                const SizedBox(height: 10),
+                const Text(
+                  'These policies are designed to ensure the safety of both donors and recipients. '
+                  'Failure to comply may result in temporary or permanent deferral from the donation program.',
+                  style: TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: const Text('Close'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
-    ));
+      ),
+    );
   }
 
   void _showSuccess(String message) {
@@ -194,6 +261,71 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 16),
               _buildBloodTypeDropdown(),
               const SizedBox(height: 16),
+              
+              // Policy Agreement Section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.policy, color: Colors.red),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Donor Policies',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: _showPolicyDialog,
+                          child: Text(
+                            'View Full Policies',
+                            style: TextStyle(color: Colors.red[700]),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'I understand and agree to follow all donor policies, including maintaining good health, checking and accepting my status, and complying with recovery periods.',
+                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _policyAgreed,
+                          onChanged: (value) {
+                            setState(() => _policyAgreed = value!);
+                          },
+                          activeColor: Colors.red[700],
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _policyAgreed = !_policyAgreed);
+                            },
+                            child: const Text(
+                              'I agree to abide by all donor policies',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 16),
               // Location capture section
               _currentPosition != null
                   ? ListTile(
@@ -207,23 +339,30 @@ class _SignUpPageState extends State<SignUpPage> {
                   : Text(
                       _locationStatus,
                       style: TextStyle(
-                        color: _locationStatus.startsWith('Error') 
-                            ? Colors.red 
+                        color: _locationStatus.startsWith('Error')
+                            ? Colors.red
                             : Colors.grey,
                       ),
                     ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _isLoading ? null : _register,
+                onPressed: _isLoading 
+                    ? null 
+                    : (_policyAgreed ? _register : null),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: Colors.red[700],
+                  backgroundColor: _policyAgreed ? Colors.red[700] : Colors.grey[400],
+                  disabledBackgroundColor: Colors.grey[400],
+                  disabledForegroundColor: Colors.grey[700],
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
+                    : Text(
                         'Sign Up',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 16, 
+                          color: _policyAgreed ? Colors.white : Colors.grey[700],
+                        ),
                       ),
               ),
             ],

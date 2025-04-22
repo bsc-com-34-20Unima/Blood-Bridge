@@ -74,7 +74,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     try {
       // Fetch donor data
       final donorResponse = await http.get(
-        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+        Uri.parse('http://localhost:3004/donors/$userId'),
       );
       
       if (donorResponse.statusCode == 200) {
@@ -90,7 +90,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
         // Fetch blood type data using blood group directly
         if (donorData.containsKey('bloodGroup') && donorData['bloodGroup'] != null) {
           final bloodGroupResponse = await http.get(
-            Uri.parse('http://10.0.2.2:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
+            Uri.parse('http://localhost:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
           );
           
           if (bloodGroupResponse.statusCode == 200) {
@@ -167,7 +167,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   Future<void> _updateLastDonation(DateTime selectedDate) async {
     try {
       final response = await http.patch(
-        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+        Uri.parse('http://localhost:3004/donors/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'lastDonation': selectedDate.toIso8601String(),
@@ -566,22 +566,6 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                 ),
               ],
               const SizedBox(height: 20),  // Replace Spacer() with SizedBox
-              Center(
-                child: ElevatedButton(
-                  onPressed: donorStatus == DonorStatus.ACTIVE ? () {} : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkRed,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                    disabledBackgroundColor: Colors.grey,
-                  ),
-                  child: const Text("Schedule Donation"),
-                ),
-              ),
-              const SizedBox(height: 10),  // Add some bottom padding
             ],
           ),
         ),
@@ -594,13 +578,13 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   String _getDonorStatusDescription(DonorStatus status) {
     switch (status) {
       case DonorStatus.ACTIVE:
-        return "Your account is active. You can schedule donations when eligible.";
+        return "Your are an active donor. You can schedule donations when eligible.";
       case DonorStatus.PENDING:
         return "Your account is pending verification. Please wait for administrator approval.";
       case DonorStatus.RESTRICTED:
-        return "Your account has been restricted. Please contact support for more information.";
+        return "Your account is restricted, please seek medical attention. Please contact support for more information.";
       case DonorStatus.INACTIVE:
-        return "Your account is currently inactive. Please update your profile to activate it.";
+        return "please seek immidiate medical support for more info. Please update your profile to activate it.";
     }
   }
 

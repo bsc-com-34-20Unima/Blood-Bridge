@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://10.0.2.2:3004';
+  final String _baseUrl = 'http://localhost:3004';
   
   // Get stored token
   Future<String?> getToken() async {

@@ -17,6 +17,6 @@ class Constants {
   static const String unexpectedError = 'Unexpected error occurred';
   
   // For different environments (optional)
-  static String get developmentUrl => 'http://10.0.2.2:3004/api';
+  static String get developmentUrl => 'http://192.168.94.48:3004/api';
   static String get productionUrl => 'https://your-production-domain.com/api';
 }

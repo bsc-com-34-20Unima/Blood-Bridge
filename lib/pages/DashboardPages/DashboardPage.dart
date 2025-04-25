@@ -27,7 +27,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<int> _fetchEventCount() async {
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3004/events'),
+        Uri.parse('http://192.168.115.48:3004/events'),
       );
       
       if (response.statusCode == 200) {

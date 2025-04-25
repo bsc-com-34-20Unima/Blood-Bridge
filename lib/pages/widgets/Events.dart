@@ -50,7 +50,7 @@ class _EventsState extends State<Events> {
       }
       
       final response = await http.get(
-        Uri.parse('http://localhost:3004/$endpoint'),
+        Uri.parse('http://192.168.115.48:3004/$endpoint'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -147,7 +147,7 @@ class _EventsState extends State<Events> {
     try {
       // Fixed endpoint for registration
       final response = await http.post(
-        Uri.parse('http://localhost:3004/events/register'),
+        Uri.parse('http://192.168.115.48:3004/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,

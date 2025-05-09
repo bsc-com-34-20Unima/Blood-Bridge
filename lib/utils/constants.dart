@@ -1,6 +1,6 @@
 class Constants {
   // Base configuration
-  static const String baseUrl = 'http://10.0.3.2:3000/api';
+  static const String baseUrl = 'http://10.0.2.2:3004/api';
   
   // Endpoints
   static const String testEndpoint = '/test';
@@ -17,6 +17,6 @@ class Constants {
   static const String unexpectedError = 'Unexpected error occurred';
   
   // For different environments (optional)
-  static String get developmentUrl => 'http://10.0.3.2:3000/api';
+  static String get developmentUrl => 'http://10.0.2.2:3004/api';
   static String get productionUrl => 'https://your-production-domain.com/api';
 }

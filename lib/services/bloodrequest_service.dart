@@ -1,117 +1,152 @@
-import 'package:geolocator/geolocator.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
+import 'dart:convert';
+import 'package:bloodbridge/services/auth_service.dart';
+import 'package:http/http.dart' as http;
 
 class BloodRequestService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final AuthService _authService = AuthService();
+  final String baseUrl = 'http://192.168.137.86:3004';
 
-  Future<void> requestDonorsByDistance({
-    required String hospitalId,
-    required String requestedBloodType,
-    required double maxDistanceKm,
+  Future<List<dynamic>> requestDonorsByDistance({
+    required String bloodType,
+    required double radius,
+    required int quantity,
+    bool broadcastAll = false,
   }) async {
-    // 1. Get hospital data
-    final hospitalDoc = await _firestore.collection('hospitals').doc(hospitalId).get();
-    final hospitalData = hospitalDoc.data()!;
-    final hospitalLoc = hospitalData['location'] as GeoPoint;
-    final hospitalEmail = hospitalData['email'] as String;
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
 
-    // 2. Find compatible donors within distance
-    final donors = await _findDonorsWithinRadius(
-      center: hospitalLoc,
-      radiusKm: maxDistanceKm,
-      bloodType: requestedBloodType,
-    );
+    if (token == null || userId == null) {
+      throw Exception('Authentication required');
+    }
 
-    // 3. Create requests and notify donors
-    for (final donor in donors) {
-      await _createBloodRequest(
-        hospitalId: hospitalId,
-        hospitalEmail: hospitalEmail,
-        donor: donor,
-      );
+    // Create request body matching the controller's expected format
+    final requestBody = {
+      'hospitalId': userId,
+      'bloodType': broadcastAll ? 'ALL' : bloodType,
+      'radius': radius,
+      'quantity': quantity,
+      'broadcastAll': broadcastAll,
+    };
+
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/blood-requests/'),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+            body: json.encode(requestBody),
+          )
+          .timeout(const Duration(seconds: 30));
+
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Request failed: $e');
     }
   }
 
-  Future<List<QueryDocumentSnapshot>> _findDonorsWithinRadius({
-    required GeoPoint center,
-    required double radiusKm,
-    required String bloodType,
-  }) async {
-    // Approximate 1 degree = 111km
-    final lat = radiusKm / 111;
-    final lng = radiusKm / (111 * cos(center.latitude * (pi / 180)));
+  List<dynamic> _handleResponse(http.Response response) {
+    final body = response.body;
 
-    final query = _firestore.collection('donors')
-      .where('bloodType', isEqualTo: bloodType)
-      .where('location', 
-        isGreaterThan: GeoPoint(center.latitude - lat, center.longitude - lng),
-        isLessThan: GeoPoint(center.latitude + lat, center.longitude + lng),
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      final data = json.decode(body);
+      return data is List ? data : [data];
+    } else {
+      final errorData = json.decode(body);
+      final message = errorData['message'] ?? 'API Error: ${response.statusCode}';
+      throw Exception(message);
+    }
+  }
+  
+  // Get all blood requests for a hospital
+  Future<List<dynamic>> getHospitalRequests() async {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/blood-requests/hospital/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
       );
 
-    final snapshot = await query.get();
-
-    // Filter by exact distance
-    return snapshot.docs.where((doc) {
-      final donorLoc = doc['location'] as GeoPoint;
-      final distance = Geolocator.distanceBetween(
-        center.latitude,
-        center.longitude,
-        donorLoc.latitude,
-        donorLoc.longitude,
-      ) / 1000;
-      return distance <= radiusKm;
-    }).toList();
-  }
-
-  Future<void> _createBloodRequest({
-    required String hospitalId,
-    required String hospitalEmail,
-    required QueryDocumentSnapshot donor,
-  }) async {
-    // 1. Create request record
-    await _firestore.collection('blood_requests').add({
-      'hospitalId': hospitalId,
-      'donorId': donor.id,
-      'donorEmail': donor['email'],
-      'bloodType': donor['bloodType'],
-      'requestedAt': FieldValue.serverTimestamp(),
-      'status': 'pending',
-      'distanceKm': _calculateDistance(
-        donor['location'] as GeoPoint,
-        (await _firestore.collection('hospitals').doc(hospitalId).get())['location'],
-      ),
-    });
-
-    // 2. Send email to donor
-    await _sendRequestEmail(
-      donorEmail: donor['email'],
-      hospitalEmail: hospitalEmail,
-      bloodType: donor['bloodType'],
-    );
-  }
-
-  double _calculateDistance(GeoPoint donorLoc, GeoPoint hospitalLoc) {
-    return Geolocator.distanceBetween(
-      hospitalLoc.latitude,
-      hospitalLoc.longitude,
-      donorLoc.latitude,
-      donorLoc.longitude,
-    ) / 1000;
-  }
-
-  Future<void> _sendRequestEmail({
-    required String donorEmail,
-    required String hospitalEmail,
-    required String bloodType,
-  }) async {
-    await _firestore.collection('mail').add({
-      'to': donorEmail,
-      'message': {
-        'subject': 'Urgent Blood Donation Request',
-        'text': 'Hospital $hospitalEmail needs $bloodType blood. '
-                'Please respond if you can donate.',
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        return responseData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to fetch blood requests';
+        throw Exception(message);
       }
-    });
+    } catch (e) {
+      throw Exception('Failed to load blood requests: ${e.toString()}');
+    }
+  }
+  
+  // Cancel a blood request
+  Future<bool> cancelRequest(String requestId) async {
+    final token = await _authService.getToken();
+    
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/blood-requests/$requestId/cancel'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to cancel blood request';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to cancel blood request: ${e.toString()}');
+    }
+  }
+  
+  // Get blood request statistics for a hospital
+  Future<Map<String, dynamic>> getRequestStatistics() async {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/blood-requests/stats/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return responseData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to fetch statistics';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to load statistics: ${e.toString()}');
+    }
   }
 }

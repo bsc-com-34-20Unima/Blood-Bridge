@@ -1,202 +1,127 @@
 import 'package:flutter/material.dart';
-
-void main() {
-  runApp(BloodBridgeApp());
-}
-
-class BloodBridgeApp extends StatelessWidget {
-  const BloodBridgeApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Blood Bridge',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
-      ),
-      home: HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Blood Bridge'),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => BloodInventoryPage()),
-            );
-          },
-          child: Text(
-            "View Blood Inventory",
-            style: TextStyle(fontSize: 18),
-          ),
-        ),
-      ),
-    );
-  }
-}
+import 'api_service.dart';
 
 class BloodInventory {
+  final int id;
   final String bloodGroup;
   int availableUnits;
   String status;
 
   BloodInventory({
+    required this.id,
     required this.bloodGroup,
     required this.availableUnits,
     required this.status,
   });
 
-  void updateUnits(int newUnits) {
-    availableUnits = newUnits;
-    if (availableUnits > 5) {
-      status = "Sufficient";
-    } else if (availableUnits > 2) {
-      status = "Near Critical";
-    } else {
-      status = "Critical Shortage";
-    }
+  factory BloodInventory.fromJson(Map<String, dynamic> json) {
+    return BloodInventory(
+      id: json['id'],
+      bloodGroup: json['bloodGroup'],
+      availableUnits: json['availableUnits'],
+      status: json['status'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'bloodGroup': bloodGroup,
+      'availableUnits': availableUnits,
+      'status': status,
+    };
   }
 }
 
 class BloodInventoryPage extends StatefulWidget {
-  const BloodInventoryPage({super.key});
-
   @override
   _BloodInventoryPageState createState() => _BloodInventoryPageState();
 }
 
 class _BloodInventoryPageState extends State<BloodInventoryPage> {
-  List<BloodInventory> bloodInventoryList = [
-    BloodInventory(bloodGroup: "A+", availableUnits: 10, status: "Sufficient"),
-    BloodInventory(bloodGroup: "O-", availableUnits: 1, status: "Critical Shortage"),
-    BloodInventory(bloodGroup: "B+", availableUnits: 5, status: "Near Critical"),
-    BloodInventory(bloodGroup: "AB-", availableUnits: 0, status: "Critical Shortage"),
-    BloodInventory(bloodGroup: "A-", availableUnits: 3, status: "Near Critical"),
-    BloodInventory(bloodGroup: "O+", availableUnits: 8, status: "Sufficient"),
-    BloodInventory(bloodGroup: "B-", availableUnits: 2, status: "Critical Shortage"),
-    BloodInventory(bloodGroup: "AB+", availableUnits: 6, status: "Sufficient"),
+  late Future<List<BloodInventory>> _inventoryFuture;
+  final ApiService _apiService = ApiService();
+  final List<String> _bloodGroups = [
+    'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
   ];
 
-  void _updateBloodUnits(int index) {
-    TextEditingController unitsController = TextEditingController(
-      text: bloodInventoryList[index].availableUnits.toString(),
-    );
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Update ${bloodInventoryList[index].bloodGroup} Units"),
-          content: TextField(
-            controller: unitsController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: "Available Units",
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  int updatedUnits = int.tryParse(unitsController.text) ?? 0;
-                  bloodInventoryList[index].updateUnits(updatedUnits);
-
-                  // ✅ CHANGE HERE: Sort the list based on available units
-                  bloodInventoryList.sort((a, b) => a.availableUnits.compareTo(b.availableUnits));
-                });
-                Navigator.of(context).pop();
-              },
-              child: Text("Update"),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void initState() {
+    super.initState();
+    _inventoryFuture = _apiService.fetchInventory();
   }
 
-  Color getStatusColor(String status) {
-    if (status == "Sufficient") return Colors.green;
-    if (status == "Near Critical") return Colors.orange;
-    return Colors.red;
+  Future<void> _refreshInventory() async {
+    setState(() {
+      _inventoryFuture = _apiService.fetchInventory();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ CHANGE HERE: Always sort before displaying (in case of rebuild)
-    List<BloodInventory> sortedList = List.from(bloodInventoryList)
-      ..sort((a, b) => a.availableUnits.compareTo(b.availableUnits));
-
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(10),
-        child: ListView.builder(
-          itemCount: sortedList.length,
-          itemBuilder: (context, index) {
-            final bloodInventory = sortedList[index];
-            Color statusColor = getStatusColor(bloodInventory.status);
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: FutureBuilder<List<BloodInventory>>(
+        future: _inventoryFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
 
-            return Card(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              elevation: 4,
-              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: statusColor.withOpacity(0.2),
-                  child: Icon(Icons.bloodtype, color: statusColor),
-                ),
-                title: Text(
-                  bloodInventory.bloodGroup,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+          // Create a map of existing inventory items for quick lookup
+          final existingItems = {
+            for (var item in snapshot.data ?? []) item.bloodGroup: item
+          };
+
+          // Create a list that includes all blood groups
+          final List displayList = _bloodGroups.map((group) {
+            return existingItems[group] ??
+                BloodInventory(
+                  id: -1, // Temporary ID for items not in the database
+                  bloodGroup: group,
+                  availableUnits: 0,
+                  status: 'Critical Shortage',
+                );
+          }).toList();
+
+          // Sort by available units
+          displayList.sort((a, b) => a.availableUnits.compareTo(b.availableUnits));
+
+          return RefreshIndicator(
+            onRefresh: _refreshInventory,
+            child: ListView.builder(
+              itemCount: displayList.length,
+              itemBuilder: (context, index) {
+                final bloodInventory = displayList[index];
+                Color statusColor = getStatusColor(bloodInventory.status);
+
+                return Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
                   ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 4),
-                    Text(
-                      "Units: ${bloodInventory.availableUnits}",
-                      style: TextStyle(fontSize: 16),
+                  elevation: 4,
+                  margin: EdgeInsets.symmetric(vertical: 8, horizontal: 5),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: statusColor.withOpacity(0.2),
+                      child: Icon(Icons.bloodtype, color: statusColor),
                     ),
-                    SizedBox(height: 2),
-                    Row(
+                    title: Text(
+                      bloodInventory.bloodGroup,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Text("Units: ${bloodInventory.availableUnits}", 
+                            style: TextStyle(fontSize: 16)),
                         Text(
-                          "Status: ",
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          bloodInventory.status,
+                          "Status: ${bloodInventory.status}",
                           style: TextStyle(
                             fontSize: 14,
                             color: statusColor,
@@ -205,31 +130,151 @@ class _BloodInventoryPageState extends State<BloodInventoryPage> {
                         ),
                       ],
                     ),
-                  ],
-                ),
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'Update') {
-                      int originalIndex = bloodInventoryList.indexWhere(
-                          (item) => item.bloodGroup == bloodInventory.bloodGroup);
-                      _updateBloodUnits(originalIndex);
-                    }
-                  },
-                  itemBuilder: (BuildContext context) {
-                    return {'Update'}.map((String choice) {
-                      return PopupMenuItem<String>(
-                        value: choice,
-                        child: Text(choice),
-                      );
-                    }).toList();
-                  },
-                  icon: Icon(Icons.more_vert),
-                ),
-              ),
-            );
-          },
-        ),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'Update') {
+                          _updateBloodUnitsDialog(context, bloodInventory);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        PopupMenuItem(value: 'Update', child: Text('Update')),
+                      ],
+                      icon: Icon(Icons.more_vert),
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _addNewBloodGroupDialog(context),
+        child: Icon(Icons.add),
+        backgroundColor: Colors.redAccent,
       ),
     );
+  }
+
+  void _updateBloodUnitsDialog(BuildContext context, BloodInventory inventory) {
+    TextEditingController controller =
+        TextEditingController(text: inventory.availableUnits.toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Update ${inventory.bloodGroup} Units'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: "Available Units",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              int newUnits = int.tryParse(controller.text) ?? inventory.availableUnits;
+              
+              if (inventory.id == -1) {
+                // This is a new blood group not in the database yet
+                await _apiService.createInventory(
+                  bloodGroup: inventory.bloodGroup,
+                  availableUnits: newUnits,
+                );
+              } else {
+                // Existing blood group
+                await _apiService.updateInventory(inventory.id, newUnits);
+              }
+
+              _refreshInventory();
+              Navigator.pop(context);
+            },
+            child: Text('Update'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addNewBloodGroupDialog(BuildContext context) {
+    String? selectedGroup;
+    TextEditingController unitsController = TextEditingController(text: '0');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add New Blood Group'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              value: selectedGroup,
+              decoration: InputDecoration(
+                labelText: 'Blood Group',
+                border: OutlineInputBorder(),
+              ),
+              items: _bloodGroups.map((String group) {
+                return DropdownMenuItem<String>(
+                  value: group,
+                  child: Text(group),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                selectedGroup = newValue;
+              },
+              validator: (value) =>
+                  value == null ? 'Please select a blood group' : null,
+            ),
+            SizedBox(height: 16),
+            TextField(
+              controller: unitsController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: "Available Units",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (selectedGroup != null) {
+                await _apiService.createInventory(
+                  bloodGroup: selectedGroup!,
+                  availableUnits: int.tryParse(unitsController.text) ?? 0,
+                );
+                _refreshInventory();
+                Navigator.pop(context);
+              }
+            },
+            child: Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color getStatusColor(String status) {
+    switch (status) {
+      case "Critical Shortage":
+        return Colors.red;
+      case "Near Critical":
+        return Colors.orange;
+      case "Sufficient":
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
   }
 }

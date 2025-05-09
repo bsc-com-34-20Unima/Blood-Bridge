@@ -1,3 +1,5 @@
+import 'package:bloodbridge/pages/hospitadashboard.dart';
+import 'package:bloodbridge/screens/donor_settings.dart';
 import 'package:flutter/material.dart';
 import '../pages/widgets/profile_summary.dart';
 import '../pages/widgets/urgent_requests.dart';
@@ -5,7 +7,7 @@ import '../pages/widgets/quick_actions.dart';
 import '../pages/widgets/achievements.dart';
 import '../pages/widgets/support_section.dart';
 import '../pages/widgets/Events.dart';
-import '../pages/Settings/Settings.dart';
+import '../pages/donor_settings.dart'; // Import settings page
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});
@@ -17,22 +19,24 @@ class DonorDashboardScreen extends StatefulWidget {
 class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   int _currentIndex = 0;
 
-  final List _pages = [
+  final List<Widget> _pages = [
     ProfileSummary(),
     UrgentRequests(),
     QuickActions(),
     Events(),
-    Achievements(donations: 12),
+    Achievements(),
     SupportSection(),
+    DonorSettingsScreen(), // Uncommented and properly referenced
   ];
 
-  final List _titles = [
+  final List<String> _titles = [
     "Profile & Eligibility",
     "Urgent Requests",
     "Quick Actions",
     "Events",
     "Achievements",
     "Support Section",
+    "Settings",
   ];
 
   @override
@@ -41,26 +45,24 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
       appBar: AppBar(
         backgroundColor: Colors.red,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           _titles[_currentIndex],
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications, color: Colors.white),
+            icon: const Icon(Icons.notifications, color: Colors.white),
             onPressed: () {
               // Notifications action
             },
           ),
           IconButton(
-            icon: Icon(Icons.settings, color: Colors.white),
+            icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
-              // Navigate to settings page
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsPage()),
-              );
+              setState(() {
+                _currentIndex = 6; // Now valid (index 6 exists)
+              });
             },
           ),
         ],
@@ -69,7 +71,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
+            const DrawerHeader(
               decoration: BoxDecoration(color: Colors.red),
               child: Center(
                 child: Column(
@@ -85,70 +87,42 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
                 ),
               ),
             ),
+            _buildDrawerItem(0, Icons.dashboard, "Profile & Eligibility"),
+            _buildDrawerItem(1, Icons.warning, "Urgent Requests"),
+            _buildDrawerItem(2, Icons.flash_on, "Quick Actions"),
+            _buildDrawerItem(3, Icons.event_available, "Events"),
+            _buildDrawerItem(4, Icons.emoji_events, "Achievements"),
+            _buildDrawerItem(5, Icons.support, "Support Section"),
+            _buildDrawerItem(6, Icons.settings, "Settings"),
+            const Divider(),
             ListTile(
-              leading: Icon(Icons.dashboard, color: Colors.red),
-              title: Text("Profile & Eligibility"),
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout"),
               onTap: () {
-                setState(() {
-                  _currentIndex = 0;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.warning, color: Colors.red),
-              title: Text("Urgent Requests"),
-              onTap: () {
-                setState(() {
-                  _currentIndex = 1;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.flash_on, color: Colors.red),
-              title: Text("Quick Actions"),
-              onTap: () {
-                setState(() {
-                  _currentIndex = 2;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.event_available, color: Colors.red),
-              title: Text("Events"),
-              onTap: () {
-                setState(() {
-                  _currentIndex = 3;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.emoji_events, color: Colors.red),
-              title: Text("Achievements"),
-              onTap: () {
-                setState(() {
-                  _currentIndex = 4;
-                });
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.support, color: Colors.red),
-              title: Text("Support Section"),
-              onTap: () {
-                setState(() {
-                  _currentIndex = 5;
-                });
-                Navigator.pop(context);
+                Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
               },
             ),
           ],
         ),
       ),
-      body: _pages[_currentIndex],
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _pages, // Uses all 7 pages safely
+      ),
+    );
+  }
+
+  // Helper method to reduce duplicate drawer code
+  ListTile _buildDrawerItem(int index, IconData icon, String title) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.red),
+      title: Text(title),
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+        Navigator.pop(context);
+      },
     );
   }
 }

@@ -25,6 +25,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
+
+  final String _baseUrl = 'http://192.168.137.86:3004';
+
   final AuthService _authService = AuthService();
 
   Future<void> _login() async {

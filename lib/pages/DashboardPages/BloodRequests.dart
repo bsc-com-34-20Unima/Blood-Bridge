@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/services/bloodrequest_service.dart';
-import 'package:bloodbridge/services/auth_service.dart';
 
 class BloodRequests extends StatefulWidget {
   const BloodRequests({super.key});
@@ -9,9 +8,9 @@ class BloodRequests extends StatefulWidget {
   State<BloodRequests> createState() => _BloodRequestsState();
 }
 
-class _BloodRequestsState extends State<BloodRequests> {
+class _BloodRequestsState extends State<BloodRequests> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final _requestService = BloodRequestService();
-  final _authService = AuthService();
   final _distanceController = TextEditingController();
   final _quantityController = TextEditingController(text: '1'); // Default quantity
   final _formKey = GlobalKey<FormState>();
@@ -24,14 +23,14 @@ class _BloodRequestsState extends State<BloodRequests> {
   
   // Map Flutter blood types to API blood types if needed
   final Map<String, String> _bloodTypeMapping = {
-    'A+': 'A_POSITIVE',
-    'A-': 'A_NEGATIVE',
-    'B+': 'B_POSITIVE',
-    'B-': 'B_NEGATIVE',
-    'AB+': 'AB_POSITIVE',
-    'AB-': 'AB_NEGATIVE',
-    'O+': 'O_POSITIVE',
-    'O-': 'O_NEGATIVE',
+    'A+': 'A+',  
+    'A-': 'A-',
+    'B+': 'B+',
+    'B-': 'B-',
+    'AB+': 'AB+',
+    'AB-': 'AB-',
+    'O+': 'O+',
+    'O-': 'O-',
   };
 
   // Blood type color mapping for visual enhancement
@@ -49,6 +48,7 @@ class _BloodRequestsState extends State<BloodRequests> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _fetchActiveRequests();
   }
 
@@ -100,29 +100,28 @@ class _BloodRequestsState extends State<BloodRequests> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(''),
-          centerTitle: true,
-          elevation: 1,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'New Request', icon: Icon(Icons.add_circle_outline)),
-              Tab(text: 'Active Requests', icon: Icon(Icons.list)),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            // New Request Tab
-            _buildNewRequestTab(),
-            
-            // Active Requests Tab
-            _buildActiveRequestsTab(),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(''),
+        centerTitle: true,
+        elevation: 1,
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'New Request', icon: Icon(Icons.add_circle_outline)),
+            Tab(text: 'Active Requests', icon: Icon(Icons.list)),
           ],
         ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // New Request Tab
+          _buildNewRequestTab(),
+          
+          // Active Requests Tab
+          _buildActiveRequestsTab(),
+        ],
       ),
     );
   }
@@ -538,8 +537,8 @@ class _BloodRequestsState extends State<BloodRequests> {
       // Refresh data
       _fetchActiveRequests();
       
-      // Switch to the active requests tab
-      DefaultTabController.of(context).animateTo(1);
+      // Switch to the active requests tab using our tabController
+      _tabController.animateTo(1);
       
     } catch (e) {
       // More detailed error handling
@@ -553,6 +552,7 @@ class _BloodRequestsState extends State<BloodRequests> {
   void dispose() {
     _distanceController.dispose();
     _quantityController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 }

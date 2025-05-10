@@ -25,6 +25,20 @@ class _SignUpPageState extends State<SignUpPage> {
   Position? _currentPosition;
   String _locationStatus = '';
 
+  // List of policies that users must agree to
+  final List<String> _policies = [
+    'Be ready to accept change of status if there is a defect in your blood',
+    'Be ready to seek medical attention if status changes',
+    'Be available to donate if status is okay and you are eligible',
+    'Update the donation date after each donation',
+    'Wait a full recovery period before your next donation (typically 56 days for whole blood)',
+    'Maintain good health and inform the donation center of any new medications',
+    'Do not donate when you are sick, have a fever, or feel unwell',
+    'Inform the donation center of any recent travel to areas with endemic diseases',
+    'Disclose complete and accurate medical history',
+    'Follow all pre and post-donation instructions provided by staff'
+  ];
+
   Future<void> _getCurrentLocation() async {
     setState(() {
       _isLoading = true;
@@ -77,6 +91,69 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
+    // Show policy dialog when user clicks Sign Up
+    _showPolicyDialog();
+  }
+
+  void _showPolicyDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Donor Policies',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red[700])),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'As a blood donor, I agree to:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 10),
+                ..._policies.map((policy) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('• ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          Expanded(child: Text(policy, style: const TextStyle(fontSize: 14))),
+                        ],
+                      ),
+                    )),
+                const SizedBox(height: 10),
+                const Text(
+                  'These policies are designed to ensure the safety of both donors and recipients. '
+                  'Failure to comply may result in temporary or permanent deferral from the donation program.',
+                  style: TextStyle(fontStyle: FontStyle.italic, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Disagree', style: TextStyle(color: Colors.grey[700])),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+              ),
+              child: const Text('Agree', style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _processRegistration();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _processRegistration() async {
     setState(() => _isLoading = true);
     try {
       // Get location first
@@ -91,10 +168,10 @@ class _SignUpPageState extends State<SignUpPage> {
         'email': _controllers['email']!.text.trim(),
         'phone': _controllers['phone']!.text.trim(),
         'password': _controllers['password']!.text.trim(),
-        'bloodGroup': _selectedBloodType!, 
+        'bloodGroup': _selectedBloodType!,
         'donations': int.parse(_controllers['donations']!.text.trim()),
-        'latitude': _currentPosition!.latitude,  // Changed: Now as top-level property
-        'longitude': _currentPosition!.longitude,  // Changed: Now as top-level property
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
       };
 
       await _authService.registerDonor(donorData);
@@ -116,7 +193,8 @@ class _SignUpPageState extends State<SignUpPage> {
         content: Text(message),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
-    ));
+      ),
+    );
   }
 
   void _showSuccess(String message) {
@@ -194,6 +272,7 @@ class _SignUpPageState extends State<SignUpPage> {
               const SizedBox(height: 16),
               _buildBloodTypeDropdown(),
               const SizedBox(height: 16),
+              
               // Location capture section
               _currentPosition != null
                   ? ListTile(
@@ -207,8 +286,8 @@ class _SignUpPageState extends State<SignUpPage> {
                   : Text(
                       _locationStatus,
                       style: TextStyle(
-                        color: _locationStatus.startsWith('Error') 
-                            ? Colors.red 
+                        color: _locationStatus.startsWith('Error')
+                            ? Colors.red
                             : Colors.grey,
                       ),
                     ),
@@ -218,12 +297,17 @@ class _SignUpPageState extends State<SignUpPage> {
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: Colors.red[700],
+                  disabledBackgroundColor: Colors.grey[400],
+                  disabledForegroundColor: Colors.grey[700],
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                         'Sign Up',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 16, 
+                          color: Colors.white,
+                        ),
                       ),
               ),
             ],

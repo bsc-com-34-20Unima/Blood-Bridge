@@ -1,36 +1,29 @@
+// Let's complete the implementation for the DonorsPage widget
+
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 
-void main() {
-  runApp(BloodBridgeApp());
-}
-
-class BloodBridgeApp extends StatelessWidget {
-  const BloodBridgeApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: DonorsPage(),
-    );
-  }
-}
-
+// Donor model from the first document
 class Donor {
-  final String id;
-  final String name;
-  final String bloodGroup;
-  final String lastDonation;
-  final String phone;
+  String id;
+  String name;
+  String bloodGroup;
+  String lastDonation;
+  String status;
+  String contact;
+  String donorId;
+  String email;
 
   Donor({
     required this.id,
-    required this.name,
-    required this.bloodGroup,
+    required this.name, 
+    required this.bloodGroup, 
     required this.lastDonation,
-    required this.phone,
+    this.status = 'Active',
+    required this.contact,
+    required this.donorId,
+    required this.email,
   });
 
   factory Donor.fromJson(Map<String, dynamic> json) {
@@ -214,17 +207,24 @@ class DonorService {
 
 // Complete DonorsPage widget
 class DonorsPage extends StatefulWidget {
-  const DonorsPage({super.key});
+  const DonorsPage({Key? key}) : super(key: key);
 
   @override
   _DonorsPageState createState() => _DonorsPageState();
 }
 
 class _DonorsPageState extends State<DonorsPage> {
+  final DonorService _donorService = DonorService();
   List<Donor> donors = [];
   List<Donor> filteredDonors = [];
   bool isLoading = true;
-  String errorMessage = '';
+  String selectedBloodType = 'All Blood Types';
+  String selectedStatus = 'All Statuses';
+  String selectedTimeframe = 'All Time';
+  String searchQuery = '';
+
+  final List<String> bloodTypes = ['All Blood Types', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  final List<String> statusOptions = ['All Statuses', 'Active', 'Pending', 'Ineligible'];
 
   @override
   void initState() {
@@ -233,40 +233,271 @@ class _DonorsPageState extends State<DonorsPage> {
   }
 
   Future<void> _fetchDonors() async {
+    setState(() {
+      isLoading = true;
+    });
+    
     try {
-      final response = await http.get(
-        Uri.parse('http://192.168.137.131:3004/donors'), // Replace with your API endpoint
+      final fetchedDonors = await _donorService.getDonors(
+        bloodGroup: selectedBloodType != 'All Blood Types' ? selectedBloodType : null,
+        status: selectedStatus != 'All Statuses' ? selectedStatus : null,
+        search: searchQuery.isNotEmpty ? searchQuery : null,
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          donors = data.map((json) => Donor.fromJson(json)).toList();
-          filteredDonors = donors;
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = 'Failed to load donors: ${response.statusCode}';
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+      
       setState(() {
-        errorMessage = 'Error fetching donors: $e';
+        donors = fetchedDonors;
+        filteredDonors = fetchedDonors;
         isLoading = false;
       });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load donors: $e')),
+      );
     }
   }
 
   void _filterDonors(String query) {
     setState(() {
-      filteredDonors = donors
-          .where((donor) =>
-              donor.name.toLowerCase().contains(query.toLowerCase()) ||
-              donor.bloodGroup.toLowerCase().contains(query.toLowerCase()))
-          .toList();
+      searchQuery = query;
     });
+    
+    // For immediate filtering without API call
+    if (query.isEmpty) {
+      _applyFilters();
+    } else {
+      setState(() {
+        filteredDonors = donors
+            .where((donor) => 
+                donor.name.toLowerCase().contains(query.toLowerCase()) ||
+                donor.donorId.toLowerCase().contains(query.toLowerCase()) ||
+                donor.bloodGroup.toLowerCase().contains(query.toLowerCase())
+            )
+            .toList();
+      });
+    }
+    
+    // Optional: Make API call for more accurate search if needed
+    _fetchDonors();
+  }
+
+  void _applyFilters() {
+    _fetchDonors();
+  }
+
+  void _showStatusUpdateDialog(int index) async {
+    String currentStatus = filteredDonors[index].status;
+    String newStatus = currentStatus;
+    String donorId = filteredDonors[index].id;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Update Donor Status"),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Donor: ${filteredDonors[index].name}"),
+                  SizedBox(height: 10),
+                  Text("Current Status: $currentStatus"),
+                  SizedBox(height: 20),
+                  Text("New Status:"),
+                  DropdownButton<String>(
+                    value: newStatus,
+                    isExpanded: true,
+                    items: ["Active", "Pending", "Ineligible"]
+                        .map((status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(status),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        newStatus = value!;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Updating donor status...")),
+                );
+                
+                try {
+                  await _donorService.updateDonorStatus(donorId, newStatus);
+                  
+                  // Refresh the donor list
+                  _fetchDonors();
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Donor status updated to $newStatus")),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Failed to update status: $e")),
+                  );
+                }
+              },
+              child: Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showUpdateDialog(int index) {
+    Donor donor = filteredDonors[index];
+    
+    TextEditingController nameController = TextEditingController(text: donor.name);
+    TextEditingController emailController = TextEditingController(text: donor.email);
+    TextEditingController phoneController = TextEditingController(text: donor.contact);
+    String selectedBloodGroup = donor.bloodGroup;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Update Donor Information"),
+          content: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(labelText: "Name"),
+                    ),
+                    SizedBox(height: 10),
+                    TextField(
+                      controller: emailController,
+                      decoration: InputDecoration(labelText: "Email"),
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                    SizedBox(height: 10),
+                    TextField(
+                      controller: phoneController,
+                      decoration: InputDecoration(labelText: "Phone"),
+                      keyboardType: TextInputType.phone,
+                    ),
+                    SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedBloodGroup,
+                      decoration: InputDecoration(labelText: "Blood Group"),
+                      items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                          .map((bloodGroup) => DropdownMenuItem(
+                                value: bloodGroup,
+                                child: Text(bloodGroup),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedBloodGroup = value!;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                
+                // Show loading indicator
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Updating donor information...")),
+                );
+                
+                try {
+                  await _donorService.updateDonor(
+                    donor.id,
+                    {
+                      'name': nameController.text,
+                      'email': emailController.text,
+                      'phone': phoneController.text,
+                      'bloodGroup': selectedBloodGroup,
+                    },
+                  );
+                  
+                  // Refresh the donor list
+                  _fetchDonors();
+                  
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Donor information updated successfully")),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Failed to update donor: $e")),
+                  );
+                }
+              },
+              child: Text("Update"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onMenuSelected(String option, int index) async {
+    if (option == "Update") {
+      _showUpdateDialog(index);
+    } else if (option == "Delete") {
+      try {
+        final donorId = filteredDonors[index].id;
+        
+        // Show loading indicator
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Deleting donor...")),
+        );
+        
+        await _donorService.deleteDonor(donorId);
+        
+        // Refresh the donor list
+        _fetchDonors();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Donor deleted successfully")),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Failed to delete donor: $e")),
+        );
+      }
+    } else if (option == "Change Status") {
+      _showStatusUpdateDialog(index);
+    }
   }
 
   @override

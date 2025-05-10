@@ -18,7 +18,7 @@ class _NotificationPageState extends State<NotificationPage> {
   bool _isLoading = true;
   
   // API base URL
-  final String baseUrl = 'http://localhost:3004/donation-scheduling';
+  final String baseUrl = 'http://localhost:3005/donation-scheduling';
 
   @override
   void initState() {
@@ -129,7 +129,7 @@ class _NotificationPageState extends State<NotificationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Text('Notifications', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.red,
       ),
       body: _isLoading

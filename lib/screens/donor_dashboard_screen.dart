@@ -1,4 +1,3 @@
-
 import 'package:bloodbridge/pages/widgets/blood_bridge_appbar.dart';
 import 'package:bloodbridge/pages/widgets/notification_page.dart';
 import 'package:bloodbridge/pages/widgets/notification_service.dart';
@@ -11,6 +10,7 @@ import 'package:bloodbridge/pages/widgets/achievements.dart';
 import 'package:bloodbridge/pages/widgets/support_section.dart';
 import 'package:bloodbridge/pages/widgets/Events.dart';
 import 'package:bloodbridge/pages/Settings/Settings.dart';
+
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});
 
@@ -23,7 +23,6 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   final NotificationService _notificationService = NotificationService();
 
   final List<Widget> _pages = [
-
     const ProfileSummary(),
     const UrgentRequests(),
     const QuickActions(),
@@ -58,7 +57,6 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       appBar: BloodBridgeAppBar(
         title: _titles[_currentIndex],
         showNotificationIcon: true,

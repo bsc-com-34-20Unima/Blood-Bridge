@@ -167,7 +167,6 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   Future<void> _updateLastDonation(DateTime selectedDate) async {
     try {
       final response = await http.patch(
-
         Uri.parse('http://localhost:3005/donors/$userId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({

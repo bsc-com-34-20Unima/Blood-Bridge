@@ -4,9 +4,7 @@ import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-
-  static const String baseUrl = 'http://192.168.137.86:3004';
-
+  static const String baseUrl = 'http://localhost:3005';
 
   // Fetch inventory data from the backend
   Future<List<BloodInventory>> fetchInventory() async {
@@ -90,18 +88,5 @@ class ApiService {
     }
   }
 
-  // Delete a donor account
-  Future<void> deleteAccount(int donorId) async {
-    try {
-      final response = await http.delete(
-        Uri.parse('$baseUrl/donor/$donorId'),
-      );
-
-      if (response.statusCode != 200) {
-        throw Exception('Failed to delete account. Status code: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Network error: $e');
-    }
-  }
+  
 }

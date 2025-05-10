@@ -31,7 +31,6 @@ class _EventsState extends State<Events> {
     _isLoading = true;
   });
 
-
   try {
     // Default endpoint for upcoming events
     String endpoint = 'events';
@@ -54,7 +53,6 @@ class _EventsState extends State<Events> {
       Uri.parse('http://localhost:3005/$endpoint'),
       headers: {'Content-Type': 'application/json'},
     );
-
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -164,7 +162,6 @@ void _loadSampleData() {
     try {
       // Fixed endpoint for registration
       final response = await http.post(
-
         Uri.parse('http://localhost:3005/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({

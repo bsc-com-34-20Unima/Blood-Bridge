@@ -1,3 +1,4 @@
+import 'package:bloodbridge/pages/login.dart';
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'dart:convert';
@@ -19,7 +20,7 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
 
   bool _isLoading = false;
   bool _isFetching = true;
-  bool _obscurePassword = true; // Toggle password visibility
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -107,6 +108,12 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
     }
   }
 
+  void _logout() async {
+    await _authService.logout();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacementNamed('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -120,6 +127,16 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
         ),
         backgroundColor: Colors.red[700],
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
+            onPressed: () {
+              _showLogoutConfirmationDialog(context);
+
+            },
+          ),
+        ],
       ),
       body: _isFetching
           ? const Center(child: CircularProgressIndicator())
@@ -188,5 +205,59 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
               ),
             ),
     );
+  }
+
+  Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
+    bool? shouldLogout = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Logout"),
+          content: const Text("Are you sure you want to log out?"),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () => Navigator.pop(context, false),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text("Logout",
+                  style: TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.pop(context, true),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldLogout == true) {
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
+      final navigator = Navigator.of(context);
+
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      try {
+        await _authService.logout();
+        navigator.pop(); // Close loading dialog
+        
+        // Navigate to login screen and clear navigation stack
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      } catch (e) {
+        navigator.pop(); // Close loading dialog
+        scaffoldMessenger.showSnackBar(
+          SnackBar(content: Text('Logout failed: ${e.toString()}')),
+        );
+      }
+    }
   }
 }

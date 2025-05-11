@@ -5,7 +5,7 @@ import '../pages/widgets/quick_actions.dart';
 import '../pages/widgets/achievements.dart';
 import '../pages/widgets/support_section.dart';
 import '../pages/widgets/Events.dart';
-import '../pages/Settings/Settings.dart';
+
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});
@@ -57,10 +57,6 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
             icon: Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               // Navigate to settings page
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SettingsPage()),
-              );
             },
           ),
         ],

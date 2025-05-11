@@ -103,6 +103,25 @@ class AuthService {
       throw Exception('Registration failed: ${e.toString()}');
     }
   }
+
+  //for deleting hospital account
+  Future<void> deleteAccount() async {
+  final token = await getToken(); // if you're using token-based auth
+  final response = await http.delete(
+    Uri.parse('$_baseUrl/hospitals/delete'), // replace with your actual endpoint
+    headers: {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    },
+  );
+
+  if (response.statusCode == 200) {
+    await logout(); // Clear local auth info
+  } else {
+    throw Exception('Account deletion failed: ${response.body}');
+  }
+}
+
   
 // In your AuthService class
 Future<void> logout() async {
@@ -174,5 +193,8 @@ Future<void> logout() async {
       default:
         throw Exception('Unsupported method: $method');
     }
+    
   }
+
+  
 }

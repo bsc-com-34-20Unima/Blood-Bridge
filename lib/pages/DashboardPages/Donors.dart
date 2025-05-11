@@ -966,7 +966,7 @@ class _AddDonorPageState extends State<AddDonorPage> {
 
         // Make POST request to create donor
         final response = await http.post(
-          Uri.parse('http://192.168.137.94:3005/donors'),
+          Uri.parse('http://192.168.137.86:3004/donors'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(donorData),
         );

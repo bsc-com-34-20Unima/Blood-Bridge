@@ -104,7 +104,6 @@ class AuthService {
     }
   }
   
-// In your AuthService class
 Future<void> logout() async {
   try {
     final token = await getToken();
@@ -128,6 +127,78 @@ Future<void> logout() async {
   await prefs.remove('user_name');
   await prefs.remove('location_updated_once');
 }
+
+  Future<void> forgotPassword(String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+      
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to send reset link';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to send reset link: ${e.toString()}');
+    }
+  }
+  
+  // Validate reset token - FIXED: simplified for direct validation
+  Future<bool> validateResetToken(String token) async {
+    try {
+      // The token validation endpoint in the backend does redirection, not JSON response
+      // This approach works better with the way the backend is designed
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/validate-reset-token?token=$token'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        throw Exception('Invalid or expired token');
+      }
+    } catch (e) {
+      throw Exception('Invalid or expired token');
+    }
+  }
+  
+  // Reset password with token - FIXED: simplified error handling
+  Future<void> resetPassword(String token, String newPassword) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'token': token,
+          'newPassword': newPassword,
+        }),
+      );
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Success
+        return;
+      } else {
+        // Try to parse error message
+        try {
+          final errorData = json.decode(response.body);
+          final message = errorData['message'] ?? 'Password reset failed';
+          throw Exception(message);
+        } catch (_) {
+          throw Exception('Password reset failed');
+        }
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Password reset failed: ${e.toString()}');
+    }
+  }
+  
   
   // Make authenticated request
   Future<http.Response> authenticatedRequest(

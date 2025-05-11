@@ -66,7 +66,7 @@ class _DonorsPageState extends State<DonorsPage> {
   Future<void> _fetchDonors() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.137.131:3005/donors'), // Replace with your API endpoint
+        Uri.parse('http://192.168.97.139:3005/donors'), // Replace with your API endpoint
       );
 
       if (response.statusCode == 200) {

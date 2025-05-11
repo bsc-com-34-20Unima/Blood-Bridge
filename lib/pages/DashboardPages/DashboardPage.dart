@@ -69,7 +69,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Future<int> _fetchEventCount() async {
     try {
       final response = await http.get(
-        Uri.parse('http://192.168.137.131:3005/events'),
+        Uri.parse('http://192.168.97.139:3005/events'),
       );
       
       if (response.statusCode == 200) {
@@ -152,23 +152,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 16),
                   FutureBuilder<int>(
                     future: _eventsFuture,
-                    builder: (context, eventSnapshot) {
-                      if (eventSnapshot.connectionState == ConnectionState.waiting) {
-                        return _buildDashboardCard(
-                          title: "Upcoming Events",
-                          value: "Loading...",
-                          icon: LucideIcons.calendarClock,
-                          iconColor: Colors.green,
-                        );
-                      } else if (eventSnapshot.hasError) {
-                        return _buildDashboardCard(
-                          title: "Upcoming Events",
-                          value: "Error loading",
-                          icon: LucideIcons.calendarClock,
-                          iconColor: Colors.green,
-                        );
-                      }
-                      
+                    builder: (context, eventSnapshot) { 
                       final eventCount = eventSnapshot.data ?? 0;
                       return _buildDashboardCard(
                         title: "Upcoming Events",

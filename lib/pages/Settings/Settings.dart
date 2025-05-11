@@ -44,18 +44,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 color: Colors.red,
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.red),
-              title: const Text("Edit Profile"),
-              subtitle: const Text("Update your name, email, and profile picture"),
-              trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const EditProfilePage()),
-                );
-              },
-            ),
+          
             ListTile(
               leading: const Icon(Icons.lock, color: Colors.red),
               title: const Text("Change Password"),
@@ -64,7 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
+                  MaterialPageRoute(builder: (context) => const UpdateHospitalPage()),
                 );
               },
             ),
@@ -136,7 +125,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // Logout Section
             ListTile(
               leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text("Logout"),
+              title: const Text("Logout", ),
               onTap: () {
                 _showLogoutConfirmationDialog(context);
               },
@@ -197,7 +186,8 @@ class _SettingsPageState extends State<SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: const Text("Logout"),
+              child: const Text("Logout",
+                  style: TextStyle(color: Colors.white)),
               onPressed: () => Navigator.pop(context, true),
             ),
           ],

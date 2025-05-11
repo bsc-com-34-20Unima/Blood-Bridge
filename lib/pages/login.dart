@@ -1,4 +1,3 @@
-import 'package:bloodbridge/pages/forgetpassword.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
@@ -24,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-  final String _baseUrl = 'http://localhost:3004';
+  final String _baseUrl = 'http://192.168.137.86:3004';
   final AuthService _authService = AuthService();
 
   Future<void> _login() async {
@@ -191,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextButton(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
+          MaterialPageRoute(builder: (context) => const SignUpPage()),
         ),
         child: const Text(
           "Forgot Password?",

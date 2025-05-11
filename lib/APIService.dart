@@ -42,7 +42,7 @@ class Event {
 
 class EventsApiService {
   // Update with your NestJS server URL
-  final String baseUrl = 'http://localhost:3004';  
+  final String baseUrl = 'http://localhost:3005';  
   
   // Headers for all requests
   Map<String, String> get headers => {

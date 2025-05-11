@@ -2,6 +2,7 @@ import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
 import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
+import 'package:bloodbridge/pages/DashboardPages/donation_scheduling.dart';
 import 'package:bloodbridge/pages/Settings/Alerts.dart';
 import 'package:bloodbridge/pages/Settings/Settings.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
     BloodInventoryPage(),
     DonorsPage(),
     BloodRequests(),
+    DonationSchedulePage(),
     EventsPage()
   ];
 
@@ -48,6 +50,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
     "Blood Inventory",
     "Donors",
     "Requests",
+    "Donation Scheduling",
     "Events",
   ];
 
@@ -141,11 +144,21 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
               },
             ),
             ListTile(
+              leading: Icon(Icons.calendar_today, color: Colors.red),
+              title: Text("Donation Scheduling"),
+              onTap: () {
+                setState(() {
+                  _currentIndex = 4;
+                });
+                Navigator.pop(context); // Close the drawer
+              },
+            ),
+            ListTile(
               leading: Icon(Icons.event, color: Colors.red),
               title: Text("Events"),
               onTap: () {
                 setState(() {
-                  _currentIndex = 4;
+                  _currentIndex = 5;
                 });
                 Navigator.pop(context); // Close the drawer
               },

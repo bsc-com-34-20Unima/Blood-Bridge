@@ -24,7 +24,6 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isLoading = false;
   Position? _currentPosition;
   String _locationStatus = '';
-  bool _policyAgreed = false;
 
   // List of policies that users must agree to
   final List<String> _policies = [
@@ -91,47 +90,15 @@ class _SignUpPageState extends State<SignUpPage> {
       _showError('Please select your blood type');
       return;
     }
-    if (!_policyAgreed) {
-      _showError('You must agree to the donor policies');
-      return;
-    }
 
-    setState(() => _isLoading = true);
-    try {
-      // Get location first
-      await _getCurrentLocation();
-      if (_currentPosition == null) {
-        throw Exception('Could not get current location');
-      }
-
-      // Create donor data with location coordinates at the top level
-      final donorData = {
-        'name': _controllers['name']!.text.trim(),
-        'email': _controllers['email']!.text.trim(),
-        'phone': _controllers['phone']!.text.trim(),
-        'password': _controllers['password']!.text.trim(),
-        'bloodGroup': _selectedBloodType!,
-        'donations': int.parse(_controllers['donations']!.text.trim()),
-        'latitude': _currentPosition!.latitude,
-        'longitude': _currentPosition!.longitude,
-      };
-
-      await _authService.registerDonor(donorData);
-
-      if (mounted) {
-        _showSuccess('Account created successfully!');
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) _showError('Registration failed: ${e.toString()}');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    // Show policy dialog when user clicks Sign Up
+    _showPolicyDialog();
   }
 
   void _showPolicyDialog() {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Donor Policies',
@@ -167,13 +134,57 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
           actions: [
             TextButton(
-              child: const Text('Close'),
+              child: Text('Disagree', style: TextStyle(color: Colors.grey[700])),
               onPressed: () => Navigator.of(context).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+              ),
+              child: const Text('Agree', style: TextStyle(color: Colors.white)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _processRegistration();
+              },
             ),
           ],
         );
       },
     );
+  }
+
+  Future<void> _processRegistration() async {
+    setState(() => _isLoading = true);
+    try {
+      // Get location first
+      await _getCurrentLocation();
+      if (_currentPosition == null) {
+        throw Exception('Could not get current location');
+      }
+
+      // Create donor data with location coordinates at the top level
+      final donorData = {
+        'name': _controllers['name']!.text.trim(),
+        'email': _controllers['email']!.text.trim(),
+        'phone': _controllers['phone']!.text.trim(),
+        'password': _controllers['password']!.text.trim(),
+        'bloodGroup': _selectedBloodType!,
+        'donations': int.parse(_controllers['donations']!.text.trim()),
+        'latitude': _currentPosition!.latitude,
+        'longitude': _currentPosition!.longitude,
+      };
+
+      await _authService.registerDonor(donorData);
+
+      if (mounted) {
+        _showSuccess('Account created successfully!');
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) _showError('Registration failed: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   void _showError(String message) {
@@ -262,70 +273,6 @@ class _SignUpPageState extends State<SignUpPage> {
               _buildBloodTypeDropdown(),
               const SizedBox(height: 16),
               
-              // Policy Agreement Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.policy, color: Colors.red),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Donor Policies',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: _showPolicyDialog,
-                          child: Text(
-                            'View Full Policies',
-                            style: TextStyle(color: Colors.red[700]),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'I understand and agree to follow all donor policies, including maintaining good health, checking and accepting my status, and complying with recovery periods.',
-                      style: TextStyle(color: Colors.grey[700], fontSize: 14),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _policyAgreed,
-                          onChanged: (value) {
-                            setState(() => _policyAgreed = value!);
-                          },
-                          activeColor: Colors.red[700],
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() => _policyAgreed = !_policyAgreed);
-                            },
-                            child: const Text(
-                              'I agree to abide by all donor policies',
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              
-              const SizedBox(height: 16),
               // Location capture section
               _currentPosition != null
                   ? ListTile(
@@ -346,22 +293,20 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: _isLoading 
-                    ? null 
-                    : (_policyAgreed ? _register : null),
+                onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  backgroundColor: _policyAgreed ? Colors.red[700] : Colors.grey[400],
+                  backgroundColor: Colors.red[700],
                   disabledBackgroundColor: Colors.grey[400],
                   disabledForegroundColor: Colors.grey[700],
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
+                    : const Text(
                         'Sign Up',
                         style: TextStyle(
                           fontSize: 16, 
-                          color: _policyAgreed ? Colors.white : Colors.grey[700],
+                          color: Colors.white,
                         ),
                       ),
               ),

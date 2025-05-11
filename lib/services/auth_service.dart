@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -114,32 +115,32 @@ class AuthService {
     }
   }
   
-// In your AuthService class
-Future<void> logout() async {
-  try {
-    final token = await getToken();
-    if (token != null) {
-      // Make API call to invalidate token on server
-      await http.post(
-        Uri.parse('$_baseUrl/auth/logout'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
+  // Logout
+  Future<void> logout() async {
+    try {
+      final token = await getToken();
+      if (token != null) {
+        // Make API call to invalidate token on server
+        await http.post(
+          Uri.parse('$_baseUrl/auth/logout'),
+          headers: {'Authorization': 'Bearer $token'},
+        );
+      }
+    } catch (e) {
+      // Continue with local logout even if server logout fails
+      print('Server logout failed: $e');
     }
-  } catch (e) {
-    // Continue with local logout even if server logout fails
-    print('Server logout failed: $e');
+    
+    // Clear local storage regardless
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_role');
+    await prefs.remove('user_name');
+    await prefs.remove('location_updated_once');
   }
   
-  // Clear local storage regardless
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.remove('auth_token');
-  await prefs.remove('user_id');
-  await prefs.remove('user_role');
-  await prefs.remove('user_name');
-  await prefs.remove('location_updated_once');
-}
-  
-  // Make authenticated request
+  // Make authenticated request - FIXED PATCH ISSUE
   Future<http.Response> authenticatedRequest(
     String endpoint, {
     required String method,
@@ -156,37 +157,51 @@ Future<void> logout() async {
       'Content-Type': 'application/json',
     };
 
-    final uri = Uri.parse('$_baseUrl/$endpoint');
+    // Ensure the URL is correctly formatted
+    String endpointPath = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    final uri = Uri.parse('$_baseUrl/$endpointPath');
+    
+    developer.log('⚠️ Making ${method.toUpperCase()} request to: ${uri.toString()}');
+    developer.log('⚠️ Headers: $headers');
+    if (data != null) developer.log('⚠️ Body: ${json.encode(data)}');
 
-    switch (method.toUpperCase()) {
-      case 'GET':
-        return http.get(uri, headers: headers);
-      case 'POST':
-        return http.post(
-          uri, 
-          headers: headers,
-          body: data != null ? json.encode(data) : null,
-        );
-      case 'PUT':
-        return http.put(
-          uri, 
-          headers: headers,
-          body: data != null ? json.encode(data) : null,
-        );
-      case 'PATCH':
-        return http.patch(
-          uri, 
-          headers: headers,
-          body: data != null ? json.encode(data) : null,
-        );
-      case 'DELETE':
-        return http.delete(
-          uri, 
-          headers: headers,
-          body: data != null ? json.encode(data) : null,
-        );
-      default:
-        throw Exception('Unsupported method: $method');
+    try {
+      switch (method.toUpperCase()) {
+        case 'GET':
+          return await http.get(uri, headers: headers);
+        case 'POST':
+          return await http.post(
+            uri, 
+            headers: headers,
+            body: data != null ? json.encode(data) : null,
+          );
+        case 'PUT':
+          return await http.put(
+            uri, 
+            headers: headers,
+            body: data != null ? json.encode(data) : null,
+          );
+        case 'PATCH':
+          final response = await http.patch(
+            uri, 
+            headers: headers,
+            body: data != null ? json.encode(data) : null,
+          );
+          developer.log('⚠️ PATCH response status: ${response.statusCode}');
+          developer.log('⚠️ PATCH response body: ${response.body}');
+          return response;
+        case 'DELETE':
+          return await http.delete(
+            uri, 
+            headers: headers,
+            body: data != null ? json.encode(data) : null,
+          );
+        default:
+          throw Exception('Unsupported method: $method');
+      }
+    } catch (e) {
+      developer.log('❌ HTTP request error: $e', error: e);
+      rethrow;
     }
   }
 
@@ -261,7 +276,26 @@ Future<void> logout() async {
     }
   }
 
-  updateProfile({required String donorId, required String name, required String email, File? profileImage}) {}
+  // Update profile implementation
+  Future<Map<String, dynamic>> updateProfile({
+    required String donorId, 
+    Map<String, dynamic> data = const {},
+  }) async {
+    try {
+      final response = await authenticatedRequest(
+        'donors/$donorId',
+        method: 'PATCH',
+        data: data,
+      );
 
-  // Profile update result class
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to update profile');
+      }
+    } catch (e) {
+      throw Exception('Profile update failed: ${e.toString()}');
+    }
+  }
 }

@@ -1,431 +1,21 @@
-import 'dart:io';
-import 'package:bloodbridge/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-// Missing import to fix the jsonDecode error
 import 'dart:convert';
+import 'dart:developer' as developer;
+import 'package:http/http.dart' as http;
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
-
-  @override
-  _ProfilePageState createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  final AuthService _authService = AuthService();
-  bool _isLoading = true;
-  String _donorId = '';
-  String _name = '';
-  String _email = '';
-  String _bloodGroup = '';
-  String _phone = '';
-  int _donations = 0;
-  DateTime? _lastDonation;
-  String _status = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
-  }
-
-  Future<void> _loadUserProfile() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final userId = await _authService.getUserId();
-      
-      if (userId == null) {
-        throw Exception('User ID not found');
-      }
-
-      final response = await _authService.authenticatedRequest(
-        'donors/$userId',
-        method: 'GET',
-      );
-
-      if (response.statusCode == 200) {
-        final donorData = await jsonDecode(response.body);
-        
-        setState(() {
-          _donorId = donorData['id'] ?? '';
-          _name = donorData['name'] ?? '';
-          _email = donorData['email'] ?? '';
-          _bloodGroup = donorData['bloodGroup'] ?? '';
-          _phone = donorData['phone'] ?? '';
-          _donations = donorData['donations'] ?? 0;
-          _status = donorData['status'] ?? '';
-          
-          if (donorData['lastDonation'] != null) {
-            _lastDonation = DateTime.parse(donorData['lastDonation']);
-          }
-          
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to load profile');
-      }
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error loading profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _editProfile() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditProfilePage(
-          donorId: _donorId,
-          currentName: _name,
-          currentEmail: _email,
-        ),
-      ),
-    );
-
-    if (result == true) {
-      _loadUserProfile();
-    }
-  }
-
-  Future<void> _deleteAccount() async {
-    final confirmDelete = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmDelete == true) {
-      final passwordController = TextEditingController();
-      final confirmedWithPassword = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Confirm with Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Please enter your password to confirm account deletion:'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Confirm Delete'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmedWithPassword == true) {
-        setState(() {
-          _isLoading = true;
-        });
-        
-        try {
-          await _authService.deleteAccount(
-            donorId: _donorId,
-            password: passwordController.text,
-          );
-          
-          if (mounted) {
-            await _authService.logout();
-            
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/login',
-              (route) => false,
-            );
-            
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Account deleted successfully'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } catch (e) {
-          setState(() {
-            _isLoading = false;
-          });
-          
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to delete account: ${e.toString()}'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.red,
-        elevation: 0,
-        title: const Text(
-          'My Profile',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: _editProfile,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Colors.red))
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Profile header
-                  Center(
-                    child: Column(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.red.shade100,
-                          child: Text(
-                            _name.isNotEmpty ? _name[0].toUpperCase() : '',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade800,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            _bloodGroup,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  // Stats cards
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.opacity,
-                                  color: Colors.red,
-                                  size: 32,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _donations.toString(),
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Text('Donations'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Card(
-                          elevation: 2,
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              children: [
-                                const Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.red,
-                                  size: 32,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  _lastDonation != null
-                                      ? '${_lastDonation!.day}/${_lastDonation!.month}/${_lastDonation!.year}'
-                                      : 'None',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Text('Last Donation'),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Contact information
-                  const Text(
-                    'Contact Information',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Email
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.email, color: Colors.red.shade800),
-                    ),
-                    title: const Text('Email'),
-                    subtitle: Text(_email),
-                  ),
-                  
-                  // Phone
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.phone, color: Colors.red.shade800),
-                    ),
-                    title: const Text('Phone'),
-                    subtitle: Text(_phone),
-                  ),
-                  
-                  // Status
-                  ListTile(
-                    leading: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.check_circle, color: Colors.red.shade800),
-                    ),
-                    title: const Text('Status'),
-                    subtitle: Text(_status),
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  // Delete account button
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: _deleteAccount,
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      label: const Text(
-                        'Delete Account',
-                        style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-}
-
-// Create a simplified version of EditProfilePage without image functionality
 class EditProfilePage extends StatefulWidget {
-  final String donorId;
+  final String? donorId;  // Changed to nullable
   final String currentName;
   final String currentEmail;
 
   const EditProfilePage({
-    super.key,
+    Key? key,
     required this.donorId,
     required this.currentName,
     required this.currentEmail,
-  });
+  }) : super(key: key);
 
   @override
   _EditProfilePageState createState() => _EditProfilePageState();
@@ -437,13 +27,68 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _emailController = TextEditingController();
   final AuthService _authService = AuthService();
   
+  // Base URL for API - same as in AuthService
+  final String _baseUrl = 'http://192.168.137.86:3004';
+  
   bool _isLoading = false;
+  bool _isLoadingUserId = false;
+  bool _nameChanged = false;
+  bool _emailChanged = false;
+  String? _userId;  // Will store user ID from SharedPreferences if needed
 
   @override
   void initState() {
     super.initState();
     _nameController.text = widget.currentName;
     _emailController.text = widget.currentEmail;
+    
+    // Add listeners to detect changes
+    _nameController.addListener(() {
+      setState(() {
+        _nameChanged = _nameController.text != widget.currentName;
+      });
+    });
+    
+    _emailController.addListener(() {
+      setState(() {
+        _emailChanged = _emailController.text != widget.currentEmail;
+      });
+    });
+    
+    // Debug the donor ID issue
+    developer.log('⚠️ DONOR ID CHECK: ${widget.donorId}');
+    if (widget.donorId == null || widget.donorId!.isEmpty) {
+      developer.log('❌ Empty or null donor ID detected, will try to get from SharedPreferences');
+      _getUserIdFromPrefs();
+    } else {
+      _userId = widget.donorId;
+    }
+    
+    developer.log('Edit Profile initialized for donor ID: ${_userId ?? widget.donorId}');
+    developer.log('Current name: ${widget.currentName}, Current email: ${widget.currentEmail}');
+  }
+
+  // Get user ID from SharedPreferences if not provided
+  Future<void> _getUserIdFromPrefs() async {
+    setState(() {
+      _isLoadingUserId = true;
+    });
+    
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedUserId = prefs.getString('user_id');
+      developer.log('⚠️ Retrieved user_id from SharedPreferences: $storedUserId');
+      
+      setState(() {
+        _userId = storedUserId;
+        _isLoadingUserId = false;
+      });
+    } catch (e) {
+      developer.log('❌ Error getting user ID from SharedPreferences: $e', error: e);
+      setState(() {
+        _isLoadingUserId = false;
+      });
+    }
   }
 
   @override
@@ -453,8 +98,80 @@ class _EditProfilePageState extends State<EditProfilePage> {
     super.dispose();
   }
 
+  // Check if any field has been changed
+  bool get _isFormChanged => _nameChanged || _emailChanged;
+
+  // Get effective user ID - either from widget or from SharedPreferences
+  String? get effectiveUserId => _userId ?? widget.donorId;
+
+  // Direct API call for updating profile
+  Future<Map<String, dynamic>> _directUpdateProfile(String donorId, Map<String, dynamic> data) async {
+    try {
+      // Get token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      
+      if (token == null || token.isEmpty) {
+        throw Exception('Not authenticated');
+      }
+      
+      // Setup headers
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      };
+      
+      // Construct URL - carefully ensuring no trailing slash before the ID
+      final url = '$_baseUrl/donors/$donorId';
+      
+      developer.log('⚠️ DIRECT PATCH request to: $url');
+      developer.log('⚠️ Headers: $headers');
+      developer.log('⚠️ Body: ${json.encode(data)}');
+      
+      // Make the PATCH request
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(data),
+      );
+      
+      developer.log('⚠️ PATCH response status: ${response.statusCode}');
+      developer.log('⚠️ PATCH response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to update profile');
+      }
+    } catch (e) {
+      developer.log('❌ Direct API call error: $e', error: e);
+      rethrow;
+    }
+  }
+
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    
+    // If nothing changed, just return to previous screen
+    if (!_isFormChanged) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final userId = effectiveUserId;
+    
+    // Check if we have a valid user ID
+    if (userId == null || userId.isEmpty) {
+      developer.log('❌ No valid donor ID available for update');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: No donor ID available'),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
@@ -463,25 +180,41 @@ class _EditProfilePageState extends State<EditProfilePage> {
     });
 
     try {
-      final response = await _authService.authenticatedRequest(
-        'donors/${widget.donorId}',
-        method: 'PATCH',
-        data: {
-          'name': _nameController.text,
-          'email': _emailController.text,
-        },
-      );
+      // Create the update object with only changed fields
+      final Map<String, dynamic> updateData = {};
+      
+      if (_nameChanged) {
+        updateData['name'] = _nameController.text.trim();
+      }
+      
+      if (_emailChanged) {
+        updateData['email'] = _emailController.text.trim();
+      }
+      
+      developer.log('⚠️ Updating profile for donor ID: $userId');
+      developer.log('⚠️ Update data: $updateData');
+      
+      // Only make the API call if we have changes
+      if (updateData.isNotEmpty) {
+        // Use direct API call instead of AuthService
+        final result = await _directUpdateProfile(userId, updateData);
+        
+        developer.log('✅ Profile update result: $result');
 
-      if (response.statusCode == 200) {
         // Update shared preferences with new data
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('user_name', _nameController.text);
+        
+        if (_nameChanged) {
+          await prefs.setString('user_name', _nameController.text);
+          developer.log('✅ Updated name in SharedPreferences');
+        }
+        
+        if (_emailChanged) {
+          await prefs.setString('user_email', _emailController.text);
+          developer.log('✅ Updated email in SharedPreferences');
+        }
         
         if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
-          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Profile updated successfully'),
@@ -489,23 +222,29 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           );
           
-          Navigator.pop(context, true);
+          developer.log('✅ Profile update successful');
+          Navigator.pop(context, true); // Return true to indicate successful update
         }
       } else {
-        throw Exception('Failed to update profile');
+        // No changes made
+        developer.log('ℹ️ No changes to update');
+        Navigator.pop(context);
       }
     } catch (e) {
+      developer.log('❌ Update profile error: $e', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update profile: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
@@ -525,7 +264,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
         ),
       ),
-      body: _isLoading
+      body: _isLoading || _isLoadingUserId
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
           : Padding(
               padding: const EdgeInsets.all(16.0),
@@ -533,7 +272,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    // User identity display
+                    // Profile initial display
                     Center(
                       child: CircleAvatar(
                         radius: 50,
@@ -552,16 +291,31 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 32),
                     
+                    // Donor ID display (for debugging)
+                    Center(
+                      child: Text(
+                        "Donor ID: ${effectiveUserId ?? 'Not available'}",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    
                     // Name Field
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: "Full Name",
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person, color: Colors.red),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person, color: Colors.red),
+                        suffixIcon: _nameChanged 
+                            ? Icon(Icons.check_circle, color: Colors.green) 
+                            : null,
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'Please enter your name';
                         }
                         return null;
@@ -572,13 +326,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     // Email Field
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
                         labelText: "Email",
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.email, color: Colors.red),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.email, color: Colors.red),
+                        suffixIcon: _emailChanged 
+                            ? Icon(Icons.check_circle, color: Colors.green) 
+                            : null,
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'Please enter your email';
                         }
                         if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
@@ -589,20 +347,62 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
                     const SizedBox(height: 32),
                     
-                    // Update Button
+                    // No user ID warning if applicable
+                    if (effectiveUserId == null || effectiveUserId!.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.yellow.shade100,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: const Text(
+                          "Warning: User ID not available. Profile updates may not work.",
+                          style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    
+                    // Update Button - Only enabled if changes were made
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
+                        backgroundColor: _isFormChanged && effectiveUserId != null && effectiveUserId!.isNotEmpty 
+                            ? Colors.red 
+                            : Colors.grey,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      onPressed: _updateProfile,
+                      onPressed: _isFormChanged && effectiveUserId != null && effectiveUserId!.isNotEmpty
+                          ? _updateProfile 
+                          : null,
                       child: const Text(
                         "Update Profile",
                         style: TextStyle(
                           color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    
+                    // Cancel Button
+                    const SizedBox(height: 16),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        "Cancel",
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),

@@ -5,7 +5,7 @@ import 'package:bloodbridge/services/auth_service.dart';
 
 class NotificationService {
   // API base URL
-  final String baseUrl = 'http://localhost:3005/donation-scheduling';
+  final String baseUrl = 'http://192.168.137.86:3004/donation-scheduling';
   
   // Auth service for getting user token
   final AuthService _authService = AuthService();

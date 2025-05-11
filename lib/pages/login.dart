@@ -1,11 +1,9 @@
-import 'package:bloodbridge/session_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
-import 'package:bloodbridge/services/auth_service.dart';
-import 'package:bloodbridge/utils/session_manager.dart';
+import 'package:bloodbridge/services/auth_service.dart'; // Make sure this import path is correct
 
 class LocationFailure implements Exception {
   final String message;
@@ -25,17 +23,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-  final String _baseUrl = 'http://localhost:3005';
+  final String _baseUrl = 'http://192.168.137.86:3004';
   final AuthService _authService = AuthService();
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        // 1. Get current location
+        // 1. Check location services first - fail early if not available
         final position = await _getCurrentPosition();
         
-        // 2. Authenticate with backend
+        // 2. Login with location data
         final authResponse = await _authService.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
@@ -43,18 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
           longitude: position.longitude,
         );
 
-        // 3. Store session data using SessionManager
-        await SessionManager.saveLoginData(
-          donorId: authResponse['donorId'],
-          token: authResponse['token'],
-          email: authResponse['email'],
-          name: authResponse['name'],
-          role: authResponse['role'] ?? 'donor',
-        );
-
-        debugPrint('Login successful for donorId: ${authResponse['donorId']}');
-
-        // 4. Navigate to appropriate dashboard
+        // 3. Navigate to appropriate dashboard
         if (!mounted) return;
         Navigator.pushReplacement(
           context,

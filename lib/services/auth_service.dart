@@ -9,7 +9,8 @@ import 'package:path/path.dart' as path;
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://localhost:3005';
+  final String _baseUrl = 'http://192.168.137.86:3004';
+  
   // Get stored token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -112,32 +113,32 @@ class AuthService {
       throw Exception('Registration failed: ${e.toString()}');
     }
   }
-
-  // Logout user and clear preferences
-  Future<void> logout() async {
-    try {
-      final token = await getToken();
-      if (token != null) {
-        // Make API call to invalidate token on server
-        await http.post(
-          Uri.parse('$_baseUrl/auth/logout'),
-          headers: {'Authorization': 'Bearer $token'},
-        );
-      }
-    } catch (e) {
-      // Continue with local logout even if server logout fails
-      print('Server logout failed: $e');
+  
+// In your AuthService class
+Future<void> logout() async {
+  try {
+    final token = await getToken();
+    if (token != null) {
+      // Make API call to invalidate token on server
+      await http.post(
+        Uri.parse('$_baseUrl/auth/logout'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
     }
-
-    // Clear local storage regardless
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    await prefs.remove('user_id');
-    await prefs.remove('user_role');
-    await prefs.remove('user_name');
-    await prefs.remove('location_updated_once');
+  } catch (e) {
+    // Continue with local logout even if server logout fails
+    print('Server logout failed: $e');
   }
-
+  
+  // Clear local storage regardless
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('auth_token');
+  await prefs.remove('user_id');
+  await prefs.remove('user_role');
+  await prefs.remove('user_name');
+  await prefs.remove('location_updated_once');
+}
+  
   // Make authenticated request
   Future<http.Response> authenticatedRequest(
     String endpoint, {

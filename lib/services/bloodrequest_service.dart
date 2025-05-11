@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:http/http.dart' as http;
@@ -5,7 +6,7 @@ import 'package:http/http.dart' as http;
 
 class BloodRequestService {
   final AuthService _authService = AuthService();
-  final String baseUrl = 'http://localhost:3005';
+  final String baseUrl = 'http://192.168.137.86:3004';
 
   Future<List<dynamic>> requestDonorsByDistance({
     required String bloodType,

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:http/http.dart' as http;
 
+
 class BloodRequestService {
   final AuthService _authService = AuthService();
   final String baseUrl = 'http://192.168.137.86:3004';
@@ -118,6 +119,68 @@ class BloodRequestService {
       throw Exception('Failed to cancel blood request: ${e.toString()}');
     }
   }
+ 
+ // Get all blood requests for a donor
+  Future<List<dynamic>> getDonorRequests() async {
+    final token = await _authService.getToken();
+    final userId = await _authService.getUserId();
+    
+    if (token == null || userId == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/blood-requests/donor/$userId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        return responseData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Failed to fetch blood requests';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Failed to load blood requests: ${e.toString()}');
+    }
+  }
+
+Future<bool> respondToRequest(String requestId) async {
+  final token = await _authService.getToken();
+  final userId = await _authService.getUserId();
+  
+  if (token == null || userId == null) {
+    throw Exception('Not authenticated');
+  }
+  
+  try {
+    final response = await http.post(
+      Uri.parse('$baseUrl/blood-requests/$requestId/respond'), // Remove the space
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({'donorId': userId}), // Add the donorId in the request body
+    );
+    
+    if (response.statusCode == 200) {
+      final responseData = jsonDecode(response.body);
+      return responseData['success'] ?? true;
+    } else {
+      throw Exception('Failed to respond to request: ${response.statusCode}');
+    }
+  } catch (e) {
+    throw Exception('Failed to respond to request: ${e.toString()}');
+  }
+}
+
+    
   
   // Get blood request statistics for a hospital
   Future<Map<String, dynamic>> getRequestStatistics() async {

@@ -1,4 +1,4 @@
-import 'package:bloodbridge/models/donor.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,15 +7,85 @@ enum UserRole { donor, hospital }
 
 class AuthService {
   final String _baseUrl = 'http://192.168.137.86:3004';
-
+  
   // Get stored token
   Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
   }
+  
+  // Get stored user ID
+  Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_id');
+  }
+  
+  // Get user role
+  Future<UserRole> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final roleString = prefs.getString('user_role') ?? 'donor';
+    return roleString == 'donor' ? UserRole.donor : UserRole.hospital;
+  }
+  
+  // Get user name
+  Future<String?> getUserName() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_name');
+  }
+  
+  // Check if user is logged in
+  Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
+  }
+  
+  // Login user with location
+  Future<Map<String, dynamic>> login(String email, String password, {double? latitude, double? longitude}) async {
+    try {
+      // Include location data in login request
+      final Map<String, dynamic> requestBody = {
+        'email': email,
+        'password': password,
+      };
+      
+      // Add location if provided
+      if (latitude != null) {
+        requestBody['latitude'] = latitude;
+      }
+      
+      if (longitude != null) {
+        requestBody['longitude'] = longitude;
+      }
+       
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(requestBody),
+      );
 
-  // Register Donor (fully implemented)
-  Future<void> registerDonor(Map<String, Object> donorData) async {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final authData = json.decode(response.body);
+        
+        // Save auth data
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', authData['token']);
+        await prefs.setString('user_id', authData['userId']);
+        await prefs.setString('user_role', authData['role']);
+        await prefs.setString('user_name', authData['name']);
+        
+        return authData;
+      } else {
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Authentication failed';
+        throw Exception(message);
+      }
+    } catch (e) {
+      throw Exception('Login failed: ${e.toString()}');
+    }
+  }
+  
+  // Register new donor
+  Future<Map<String, dynamic>> registerDonor(Map<String, dynamic> donorData) async {
     try {
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/register'),
@@ -23,190 +93,204 @@ class AuthService {
         body: json.encode(donorData),
       );
 
-      final responseData = json.decode(response.body);
-
-      if (response.statusCode != 201) {
-        throw Exception(responseData['message'] ?? 'Registration failed');
-      }
-    } catch (e) {
-      throw Exception('Registration error: ${e.toString().replaceFirst('Exception: ', '')}');
-    }
-  }
-
-  // Login
-  Future<Map<String, dynamic>> login(
-    String email,
-    String password, {
-    double? latitude,
-    double? longitude,
-  }) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-          if (latitude != null) 'latitude': latitude,
-          if (longitude != null) 'longitude': longitude,
-        }),
-      );
-
-      final responseData = json.decode(response.body);
-
-      if (response.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('auth_token', responseData['token']);
-        await prefs.setString('user_id', responseData['userId']);
-        await prefs.setString('user_role', responseData['role']);
-        await prefs.setString('user_name', responseData['name']);
-        return responseData;
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return json.decode(response.body);
       } else {
-        throw Exception(responseData['message'] ?? 'Login failed');
+        final errorData = json.decode(response.body);
+        final message = errorData['message'] ?? 'Registration failed';
+        throw Exception(message);
       }
     } catch (e) {
-      throw Exception('Login error: ${e.toString().replaceFirst('Exception: ', '')}');
+      throw Exception('Registration failed: ${e.toString()}');
     }
   }
-
-  // Logout
+  
+  // Logout user
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
     try {
       final token = await getToken();
       if (token != null) {
+        // Make API call to invalidate token on server
         await http.post(
           Uri.parse('$_baseUrl/auth/logout'),
           headers: {'Authorization': 'Bearer $token'},
         );
       }
-    } finally {
-      await prefs.remove('auth_token');
-      await prefs.remove('user_id');
-      await prefs.remove('user_role');
-      await prefs.remove('user_name');
-      await prefs.remove('location_updated_once');
+    } catch (e) {
+      // Continue with local logout even if server logout fails
+      debugPrint('Server logout failed: $e');
     }
-  }
+    
+    // Clear local storage regardless
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_id');
+    await prefs.remove('user_role');
+    await prefs.remove('user_name');
+    await prefs.remove('location_updated_once');
+  } 
 
-  // Change Password
-  Future<bool> changePassword({
-    required String currentPassword,
-    required String newPassword,
+  // Change password
+Future<void> changePassword({
+  required String donorId,
+  required String newPassword,
+}) async {
+  try {
+    final token = await getToken();
+    
+    if (token == null) {
+      throw Exception('Authentication token not found');
+    }
+
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/donors/update-password/$donorId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'newPassword': newPassword,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      // Password changed successfully
+      return;
+    } else {
+      final errorResponse = jsonDecode(response.body);
+      throw Exception(errorResponse['message'] ?? 'Failed to change password');
+    }
+  } catch (e) {
+    debugPrint('Error changing password: $e');
+    throw Exception('Failed to change password: $e');
+  }
+}
+
+  // Delete account
+  Future<bool> deleteAccount({
+    required String donorId,
+    required String password,
   }) async {
     try {
       final token = await getToken();
-      if (token == null) throw Exception('Not authenticated');
+      
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
 
-      final response = await http.patch(
-        Uri.parse('$_baseUrl/donor/password'),
+      final response = await http.post(
+        Uri.parse('$_baseUrl/donors/delete-account/$donorId'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'currentPassword': currentPassword,
-          'newPassword': newPassword,
+        body: jsonEncode({
+          'password': password,
         }),
       );
 
       if (response.statusCode == 200) {
+        // Successfully deleted account
         return true;
       } else {
-        final error = json.decode(response.body);
-        throw Exception(error['message'] ?? 'Password change failed');
+        final errorResponse = jsonDecode(response.body);
+        throw Exception(errorResponse['message'] ?? 'Failed to delete account');
       }
     } catch (e) {
-      throw Exception('Password change error: ${e.toString().replaceFirst('Exception: ', '')}');
+      debugPrint('Error deleting account: $e');
+      throw Exception('Failed to delete account: $e');
     }
   }
 
-  // Update Profile
-  Future<Donor> updateProfile(Donor updatedUser) async {
+  // Update profile without image
+  Future<Map<String, dynamic>?> updateProfile({
+    required String donorId,
+    required String name,
+    required String email,
+  }) async {
     try {
       final token = await getToken();
-      if (token == null) throw Exception('Not authenticated');
+      
+      if (token == null) {
+        throw Exception('Authentication token not found');
+      }
+
+      final Map<String, dynamic> updateData = {
+        'name': name,
+        'email': email,
+      };
 
       final response = await http.patch(
-        Uri.parse('$_baseUrl/donor/profile'),
+        Uri.parse('$_baseUrl/donors/$donorId'),
         headers: {
-          'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
         },
-        body: json.encode(updatedUser.toJson()),
+        body: jsonEncode(updateData),
       );
 
       if (response.statusCode == 200) {
-        return Donor.fromJson(json.decode(response.body));
+        final updatedData = jsonDecode(response.body);
+        
+        // Update shared preferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_name', name);
+        
+        return updatedData;
       } else {
-        throw Exception(json.decode(response.body)['message'] ?? 'Update failed');
+        final errorResponse = jsonDecode(response.body);
+        throw Exception(errorResponse['message'] ?? 'Failed to update profile');
       }
     } catch (e) {
-      throw Exception('Profile update error: ${e.toString()}');
+      debugPrint('Error updating profile: $e');
+      throw Exception('Failed to update profile: $e');
     }
   }
-
-  // Delete Account
-  Future<bool> deleteAccount() async {
-    try {
-      final token = await getToken();
-      if (token == null) throw Exception('Not authenticated');
-
-      final response = await http.delete(
-        Uri.parse('$_baseUrl/donor/account'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        await logout();
-        return true;
-      } else {
-        throw Exception(json.decode(response.body)['message'] ?? 'Deletion failed');
-      }
-    } catch (e) {
-      throw Exception('Account deletion error: ${e.toString()}');
-    }
-  }
-
-  // Get Current User
-  Future<Donor?> getCurrentUser() async {
-    try {
-      final token = await getToken();
-      if (token == null) return null;
-
-      final response = await http.get(
-        Uri.parse('$_baseUrl/donor/me'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-
-      if (response.statusCode == 200) {
-        return Donor.fromJson(json.decode(response.body));
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // Helper methods
-  Future<String?> getUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_id');
-  }
-
-  Future<UserRole> getUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final roleString = prefs.getString('user_role') ?? 'donor';
-    return roleString == 'donor' ? UserRole.donor : UserRole.hospital;
-  }
-
-  Future<String?> getUserName() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('user_name');
-  }
-
-  Future<bool> isLoggedIn() async {
+  
+  // Make authenticated request
+  Future<http.Response> authenticatedRequest(
+    String endpoint, {
+    required String method,
+    Map<String, dynamic>? data,
+  }) async {
     final token = await getToken();
-    return token != null;
+    
+    if (token == null) {
+      throw Exception('Not authenticated');
+    }
+    
+    final headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json',
+    };
+    
+    final uri = Uri.parse('$_baseUrl/$endpoint');
+    
+    switch (method.toUpperCase()) {
+      case 'GET':
+        return http.get(uri, headers: headers);
+      case 'POST':
+        return http.post(
+          uri, 
+          headers: headers,
+          body: data != null ? json.encode(data) : null,
+        );
+      case 'PUT':
+        return http.put(
+          uri, 
+          headers: headers,
+          body: data != null ? json.encode(data) : null,
+        );
+      case 'PATCH':
+        return http.patch(
+          uri, 
+          headers: headers,
+          body: data != null ? json.encode(data) : null,
+        );
+      case 'DELETE':
+        return http.delete(uri, headers: headers);
+      default:
+        throw Exception('Unsupported method: $method');
+    }
   }
 }

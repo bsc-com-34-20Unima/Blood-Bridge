@@ -27,114 +27,129 @@ class _EventsState extends State<Events> {
   }
 
   Future<void> _fetchEvents() async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      // Default endpoint for upcoming events
-      String endpoint = 'events';
-      
-      // Apply filter if selected
-      if (_activeFilter == 'This Week') {
-        endpoint = 'events/this-week';
-      } else if (_activeFilter == 'Weekend') {
-        endpoint = 'events/weekend';
-      }
-      
-      // Add search query if any
-      if (_searchController.text.isNotEmpty) {
-        endpoint += endpoint.contains('?') 
-            ? '&search=${_searchController.text}' 
-            : '?search=${_searchController.text}';
-      }
-      
-      final response = await http.get(
-        Uri.parse('http://192.168.137.86:3004/$endpoint'),
-        headers: {'Content-Type': 'application/json'},
-      );
+  try {
+    // Default endpoint for upcoming events
+    String endpoint = 'events';
+    
+    // Apply filter if selected
+    if (_activeFilter == 'This Week') {
+      endpoint = 'events/this-week';
+    } else if (_activeFilter == 'Weekend') {
+      endpoint = 'events/weekend';
+    }
+    
+    // Add search query if any
+    if (_searchController.text.isNotEmpty) {
+      endpoint += endpoint.contains('?') 
+          ? '&search=${_searchController.text}' 
+          : '?search=${_searchController.text}';
+    }
+    
+    final response = await http.get(
+      Uri.parse('http://localhost:3005/$endpoint'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          _events = data.map((event) => Event.fromJson(event)).toList();
-          _isLoading = false;
-        });
-      } else {
-        // If the server returns an error
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load events')),
-        );
-      }
-    } catch (e) {
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      
+      // Additional client-side filter to ensure only future events are shown
+      // This is a fallback in case the backend filter isn't working
+      final now = DateTime.now();
+      now.subtract(const Duration(hours: 1)); // Include events starting in the last hour
+      
+      setState(() {
+        _events = data
+            .map((event) => Event.fromJson(event))
+            .where((event) => event.eventDate.isAfter(now))
+            .toList();
+        _isLoading = false;
+      });
+    } else {
+      // If the server returns an error
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        const SnackBar(content: Text('Failed to load events')),
       );
-      
-      // For demo purposes, load sample data
-      _loadSampleData();
     }
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
+    
+    // For demo purposes, load sample data but filter past events
+    _loadSampleData();
   }
+}
 
-  void _loadSampleData() {
-    _events = [
-      Event(
-        id: '1',
-        title: 'Community Blood Drive',
-        location: 'Central Hospital',
-        locationAddress: '123 Main Street',
-        eventDate: DateTime.now().add(const Duration(days: 2)),
-        startTime: '9:00 AM',
-        endTime: '4:00 PM',
-        description: 'Join us for our community blood drive to help those in need.',
-        availableSpots: 24,
-        distance: '0.8 miles away',
-      ),
-      Event(
-        id: '2',
-        title: 'University Donation Campaign',
-        location: 'State University Campus Center',
-        locationAddress: '456 University Blvd',
-        eventDate: DateTime.now().add(const Duration(days: 5)),
-        startTime: '10:00 AM',
-        endTime: '6:00 PM',
-        description: 'Special blood donation drive targeting university students and staff.',
-        availableSpots: 42,
-        distance: '1.3 miles away',
-      ),
-      Event(
-        id: '3',
-        title: 'Downtown Blood Bank Drive',
-        location: 'City Blood Bank',
-        locationAddress: '789 Downtown Avenue',
-        eventDate: DateTime.now().add(const Duration(days: 8)),
-        startTime: '8:00 AM',
-        endTime: '2:00 PM',
-        description: 'Regularly scheduled donation at the city blood bank.',
-        availableSpots: 16,
-        distance: '2.7 miles away',
-      ),
-      Event(
-        id: '4',
-        title: 'Weekend Community Drive',
-        location: 'Westside Community Center',
-        locationAddress: '321 West Road',
-        eventDate: DateTime.now().add(const Duration(days: 9)),
-        startTime: '10:00 AM',
-        endTime: '5:00 PM',
-        description: 'Weekend community blood drive with family activities.',
-        availableSpots: 30,
-        distance: '3.2 miles away',
-      ),
-    ];
-    setState(() {});
-  }
+// 4. Update the sample data method to filter out past events:
+void _loadSampleData() {
+  final List<Event> allEvents = [
+    Event(
+      id: '1',
+      title: 'Community Blood Drive',
+      location: 'Central Hospital',
+      locationAddress: '123 Main Street',
+      eventDate: DateTime.now().add(const Duration(days: 2)),
+      startTime: '9:00 AM',
+      endTime: '4:00 PM',
+      description: 'Join us for our community blood drive to help those in need.',
+      availableSpots: 24,
+      distance: '0.8 miles away',
+    ),
+    Event(
+      id: '2',
+      title: 'University Donation Campaign',
+      location: 'State University Campus Center',
+      locationAddress: '456 University Blvd',
+      eventDate: DateTime.now().add(const Duration(days: 5)),
+      startTime: '10:00 AM',
+      endTime: '6:00 PM',
+      description: 'Special blood donation drive targeting university students and staff.',
+      availableSpots: 42,
+      distance: '1.3 miles away',
+    ),
+    Event(
+      id: '3',
+      title: 'Downtown Blood Bank Drive',
+      location: 'City Blood Bank',
+      locationAddress: '789 Downtown Avenue',
+      eventDate: DateTime.now().add(const Duration(days: 8)),
+      startTime: '8:00 AM',
+      endTime: '2:00 PM',
+      description: 'Regularly scheduled donation at the city blood bank.',
+      availableSpots: 16,
+      distance: '2.7 miles away',
+    ),
+    Event(
+      id: '4',
+      title: 'Weekend Community Drive',
+      location: 'Westside Community Center',
+      locationAddress: '321 West Road',
+      eventDate: DateTime.now().add(const Duration(days: 9)),
+      startTime: '10:00 AM',
+      endTime: '5:00 PM',
+      description: 'Weekend community blood drive with family activities.',
+      availableSpots: 30,
+      distance: '3.2 miles away',
+    ),
+  ];
+  
+  // Filter to ensure only future events are shown
+  final now = DateTime.now();
+  _events = allEvents.where((event) => event.eventDate.isAfter(now)).toList();
+  
+  setState(() {});
+}
 
   void _applyFilter(String filter) {
     setState(() {
@@ -147,7 +162,7 @@ class _EventsState extends State<Events> {
     try {
       // Fixed endpoint for registration
       final response = await http.post(
-        Uri.parse('http://192.168.137.86:3004/events/register'),
+        Uri.parse('http://localhost:3005/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,

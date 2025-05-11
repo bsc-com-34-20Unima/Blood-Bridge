@@ -3,6 +3,7 @@ import 'package:bloodbridge/pages/Settings/editprofile.dart';
 import 'package:bloodbridge/pages/login.dart';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,6 +16,28 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _receiveNotifications = true;
   bool _eventReminders = false;
   final AuthService _authService = AuthService();
+  String _donorId = '';
+  String _currentName = '';
+  String _currentEmail = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _donorId = prefs.getString('donorId') ?? '';
+        _currentName = prefs.getString('donorName') ?? '';
+        _currentEmail = prefs.getString('donorEmail') ?? '';
+      });
+    } catch (e) {
+      _showErrorMessage(context, "Failed to load user data: ${e.toString()}");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,8 +75,14 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => EditProfilePage()),
-                );
+                  MaterialPageRoute(
+                    builder: (context) => EditProfilePage(
+                      donorId: _donorId,
+                      currentName: _currentName,
+                      currentEmail: _currentEmail,
+                    ),
+                  ),
+                ).then((_) => _loadUserData()); // Refresh user data when returning
               },
             ),
             ListTile(
@@ -64,8 +93,12 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => ChangePasswordPage()),
-                );
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordPage(donorId: _donorId),
+                  ),
+                ).then((_) {
+                  // Optionally handle state after password change
+                });
               },
             ),
 
@@ -89,6 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _receiveNotifications = value;
                 });
+                _saveNotificationSettings();
               },
             ),
             SwitchListTile(
@@ -100,6 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   _eventReminders = value;
                 });
+                _saveNotificationSettings();
               },
             ),
 
@@ -147,83 +182,99 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
-    bool _isDeleting = false;
+  Future<void> _saveNotificationSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('receiveNotifications', _receiveNotifications);
+      await prefs.setBool('eventReminders', _eventReminders);
+      
+      // If you have an API endpoint to save these settings on the server
+      // await _authService.updateNotificationSettings(
+      //   _donorId, 
+      //   _receiveNotifications,
+      //   _eventReminders
+      // );
+    } catch (e) {
+      _showErrorMessage(context, "Failed to save notification settings: ${e.toString()}");
+    }
+  }
 
+  void _showDeleteAccountDialog(BuildContext context) {
+    TextEditingController passwordController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: const Text("Delete Account"),
-              content: const Text(
-                  "Are you sure you want to delete your account? This action cannot be undone."),
-              actions: [
-                TextButton(
-                  child: const Text("Cancel"),
-                  onPressed: _isDeleting ? null : () {
-                    Navigator.pop(context);
-                  },
+        return AlertDialog(
+          title: const Text("Delete Account"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "This action cannot be undone. To confirm deletion, please enter your password:",
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: "Password",
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                  ),
-                  child: _isDeleting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          "Delete",
-                          style: TextStyle(color: Colors.white),
-                        ),
-                  onPressed: _isDeleting
-                      ? null
-                      : () async {
-                          setState(() {
-                            _isDeleting = true;
-                          });
-
-                          try {
-                            await _authService.deleteAccount();
-                            
-                            // Close the dialog and navigate to login screen
-                            if (context.mounted) {
-                              Navigator.pop(context); // Close dialog
-                              
-                              // Navigate to login screen and clear navigation stack
-                              Navigator.of(context).pushAndRemoveUntil(
-                                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                (route) => false,
-                              );
-                              
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Account deleted successfully')),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              setState(() {
-                                _isDeleting = false;
-                              });
-                              
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Failed to delete account: ${e.toString()}')),
-                              );
-                            }
-                          }
-                        },
-                ),
-              ],
-            );
-          }
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text("Cancel"),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text(
+                "Delete Account",
+                style: TextStyle(color: Colors.white),
+              ),
+              onPressed: () async {
+                if (passwordController.text.isEmpty) {
+                  _showErrorMessage(context, "Please enter your password to confirm");
+                  return;
+                }
+                
+                // Show loading indicator
+                Navigator.pop(context); // Close the dialog
+                _showLoadingDialog(context);
+                
+                try {
+                  final result = await _authService.deleteAccount(
+                    donorId: _donorId,
+                    password: passwordController.text,
+                  );
+                  
+                  Navigator.pop(context); // Close loading dialog
+                  
+                  // Clear all stored credentials
+                  await _clearAllUserData();
+                  
+                  _showSuccessMessage(context, "Account deleted successfully");
+                  
+                  // Navigate to login screen and clear navigation stack
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                } catch (e) {
+                  Navigator.pop(context); // Close loading dialog
+                  _showErrorMessage(context, "Failed to delete account: ${e.toString()}");
+                }
+              },
+            ),
+          ],
         );
       },
     );
@@ -245,7 +296,10 @@ class _SettingsPageState extends State<SettingsPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
               ),
-              child: const Text("Logout"),
+              child: const Text(
+                "Logout",
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () => Navigator.pop(context, true),
             ),
           ],
@@ -254,31 +308,65 @@ class _SettingsPageState extends State<SettingsPage> {
     );
 
     if (shouldLogout == true) {
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      final navigator = Navigator.of(context);
-
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
+      _showLoadingDialog(context);
 
       try {
         await _authService.logout();
-        navigator.pop(); // Close loading dialog
+        await _clearAllUserData();
+        
+        Navigator.pop(context); // Close loading dialog
         
         // Navigate to login screen and clear navigation stack
-        navigator.pushAndRemoveUntil(
+        Navigator.pushAndRemoveUntil(
+          context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,
         );
       } catch (e) {
-        navigator.pop(); // Close loading dialog
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('Logout failed: ${e.toString()}')),
-        );
+        Navigator.pop(context); // Close loading dialog
+        _showErrorMessage(context, 'Logout failed: ${e.toString()}');
       }
     }
+  }
+
+  Future<void> _clearAllUserData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+    } catch (e) {
+      debugPrint("Error clearing user data: ${e.toString()}");
+    }
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: Colors.red,
+        ),
+      ),
+    );
+  }
+
+  void _showSuccessMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _showErrorMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }

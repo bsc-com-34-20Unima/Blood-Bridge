@@ -54,23 +54,6 @@ class SupportSection extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.arrow_back, color: Colors.grey, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Support',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
             ),
             
             // Support Options

@@ -1,45 +1,12 @@
 import 'dart:convert';
+import 'dart:core';
 import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.137.86:3004';
+  static const String baseUrl = 'http://localhost:3005';
 
-  // LOGIN METHOD
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-    double? latitude,
-    double? longitude,
-  }) async {
-    try {
-      final url = Uri.parse('$baseUrl/auth/login');
-
-      final body = {
-        'email': email,
-        'password': password,
-        if (latitude != null) 'latitude': latitude,
-        if (longitude != null) 'longitude': longitude,
-      };
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      if (response.statusCode == 200) {
-        return jsonDecode(response.body);
-      } else {
-        final error = jsonDecode(response.body);
-        throw Exception(error['message'] ?? 'Login failed');
-      }
-    } catch (e) {
-      throw Exception('Login error: $e');
-    }
-  }
-
-  // FETCH BLOOD INVENTORY
+  // Fetch inventory data from the backend
   Future<List<BloodInventory>> fetchInventory() async {
     try {
       final response = await http.get(
@@ -59,7 +26,7 @@ class ApiService {
     }
   }
 
-  // UPDATE BLOOD INVENTORY
+  // Update blood inventory in the backend
   Future<BloodInventory> updateInventory(int id, int availableUnits) async {
     try {
       final response = await http.patch(
@@ -79,7 +46,7 @@ class ApiService {
     }
   }
 
-  // CREATE BLOOD INVENTORY
+  // Create a new blood inventory item
   Future<BloodInventory> createInventory({
     required String bloodGroup,
     required int availableUnits,
@@ -105,7 +72,7 @@ class ApiService {
     }
   }
 
-  // DELETE BLOOD INVENTORY
+  // Delete a blood inventory item
   Future<void> deleteInventory(int id) async {
     try {
       final response = await http.delete(
@@ -120,4 +87,6 @@ class ApiService {
       throw Exception('Network error: $e');
     }
   }
+
+  
 }

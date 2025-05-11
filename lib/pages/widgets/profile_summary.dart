@@ -74,7 +74,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     try {
       // Fetch donor data
       final donorResponse = await http.get(
-        Uri.parse('http://10.0.2.2:3004/donors/$userId'),
+        Uri.parse('http://localhost:3005/donors/$userId'),
       );
       
       if (donorResponse.statusCode == 200) {
@@ -90,7 +90,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
         // Fetch blood type data using blood group directly
         if (donorData.containsKey('bloodGroup') && donorData['bloodGroup'] != null) {
           final bloodGroupResponse = await http.get(
-            Uri.parse('http://10.0.2.2:3004/blood-groups/by-group/${donorData['bloodGroup']}'),
+            Uri.parse('http://localhost:3005/blood-groups/by-group/${donorData['bloodGroup']}'),
           );
           
           if (bloodGroupResponse.statusCode == 200) {
@@ -239,6 +239,11 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   }
 
   EligibilityStatus _getEligibilityStatus() {
+    // If donor status is inactive, return not eligible
+    if (donorStatus == DonorStatus.INACTIVE) {
+      return EligibilityStatus.notEligible;
+    }
+    
     if (nextEligibilityDate == null) {
       return EligibilityStatus.unknown;
     }
@@ -293,24 +298,13 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     return Scaffold(
       body: Column(
         children: [
-          // App Bar with World Profile and Eligibility
+          // App Bar with only Donor Status (no eligibility)
           Container(
             padding: const EdgeInsets.only(top: 40.0, left: 20.0, right: 20.0, bottom: 10.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end, // Align to the right
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
-                  decoration: BoxDecoration(
-                    color: _getEligibilityColor(),
-                    borderRadius: BorderRadius.circular(15.0),
-                  ),
-                  child: Text(
-                    _getEligibilityText(),
-                    style: const TextStyle(color: Colors.white, fontSize: 14.0),
-                  ),
-                ),
-                // Donor Status Indicator
+                // Only Donor Status Indicator
                 if (donorStatus != null)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
@@ -445,7 +439,6 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
               ),
             ),
           ),
-          
         ],
       ),
     );
@@ -566,22 +559,6 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                 ),
               ],
               const SizedBox(height: 20),  // Replace Spacer() with SizedBox
-              Center(
-                child: ElevatedButton(
-                  onPressed: donorStatus == DonorStatus.ACTIVE ? () {} : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkRed,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
-                    disabledBackgroundColor: Colors.grey,
-                  ),
-                  child: const Text("Schedule Donation"),
-                ),
-              ),
-              const SizedBox(height: 10),  // Add some bottom padding
             ],
           ),
         ),
@@ -594,13 +571,13 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
   String _getDonorStatusDescription(DonorStatus status) {
     switch (status) {
       case DonorStatus.ACTIVE:
-        return "Your account is active. You can schedule donations when eligible.";
+        return "Your are an active donor. You can schedule donations when eligible.";
       case DonorStatus.PENDING:
         return "Your account is pending verification. Please wait for administrator approval.";
       case DonorStatus.RESTRICTED:
-        return "Your account has been restricted. Please contact support for more information.";
+        return "Your account is restricted, please seek medical attention. Please contact support for more information.";
       case DonorStatus.INACTIVE:
-        return "Your account is currently inactive. Please update your profile to activate it.";
+        return "Please seek immediate medical support for more info. Seek your previous donation center for more info.";
     }
   }
 
@@ -713,6 +690,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
     final eligibilityStatus = _getEligibilityStatus();
     Color statusColor;
     String statusText;
+    bool isInactive = donorStatus == DonorStatus.INACTIVE;
     
     switch (eligibilityStatus) {
       case EligibilityStatus.eligible:
@@ -725,7 +703,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
         break;
       case EligibilityStatus.notEligible:
         statusColor = darkRed;
-        statusText = "Not eligible yet. Please wait until eligibility date.";
+        statusText = isInactive ? "You are not eligible" : "Not eligible yet. Please wait until eligibility date.";
         break;
       case EligibilityStatus.unknown:
       default:
@@ -755,7 +733,42 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                 ),
               ),
               const SizedBox(height: 20),
-              if (nextEligibilityDate != null) ...[
+              // Special case for INACTIVE status
+              if (isInactive) ...[
+                Center(
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: statusColor,
+                        child: const Icon(
+                          Icons.block,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        statusText,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Your account is currently inactive. Please update your profile or contact support.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ] else if (nextEligibilityDate != null) ...[
+                // Normal display for active accounts
                 Row(
                   children: [
                     CircleAvatar(
@@ -820,31 +833,50 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                       ),
                     ],
                   ),
+                  
+                  // Update button for active accounts
+                  const SizedBox(height: 20),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _selectDate(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: darkRed,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      icon: const Icon(Icons.calendar_month),
+                      label: const Text("Update Donation Date"),
+                    ),
+                  ),
                 ],
               ] else ...[
+                // No donation history for active accounts
                 const Text(
                   "We don't have your last donation date on record.",
                   style: TextStyle(fontSize: 16),
                 ),
-              ],
-              
-              // Always show update button
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () => _selectDate(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkRed,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                
+                // Show update button for active accounts with no history
+                const SizedBox(height: 20),
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _selectDate(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: darkRed,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    icon: const Icon(Icons.calendar_month),
+                    label: const Text("Add Donation Date"),
                   ),
-                  icon: const Icon(Icons.calendar_month),
-                  label: const Text("Update Donation Date"),
                 ),
-              ),
+              ],
               // Add extra space at the bottom to ensure everything is visible when scrolling
               const SizedBox(height: 20),
             ],

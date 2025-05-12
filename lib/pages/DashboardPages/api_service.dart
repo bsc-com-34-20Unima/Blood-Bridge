@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'dart:core';
 import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:http/http.dart' as http;
 
-
 class ApiService {
-  static const String baseUrl = 'http://192.168.137.131:3005';
+  static const String baseUrl = 'http://192.168.137.86:3004';
 
+  // Fetch inventory data from the backend
   Future<List<BloodInventory>> fetchInventory() async {
     try {
       final response = await http.get(
@@ -25,6 +26,7 @@ class ApiService {
     }
   }
 
+  // Update blood inventory in the backend
   Future<BloodInventory> updateInventory(int id, int availableUnits) async {
     try {
       final response = await http.patch(
@@ -44,6 +46,7 @@ class ApiService {
     }
   }
 
+  // Create a new blood inventory item
   Future<BloodInventory> createInventory({
     required String bloodGroup,
     required int availableUnits,
@@ -69,6 +72,7 @@ class ApiService {
     }
   }
 
+  // Delete a blood inventory item
   Future<void> deleteInventory(int id) async {
     try {
       final response = await http.delete(

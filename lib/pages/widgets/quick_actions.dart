@@ -1,7 +1,5 @@
-// lib/widgets/quick_actions.dart
+//lib/widgets/quick_actions.dart
 import 'package:bloodbridge/pages/widgets/achievements.dart';
-import 'package:bloodbridge/screens/donation_centers/donation_centers_screen.dart';
-import 'package:bloodbridge/screens/schedule_donation/schedule_donation_screen.dart';
 import 'package:flutter/material.dart';
 
 class QuickActions extends StatelessWidget {
@@ -13,22 +11,6 @@ class QuickActions extends StatelessWidget {
       padding: EdgeInsets.all(16.0),
       child: Column(
         children: [
-          _buildDashboardCard(
-            context,
-            Icons.calendar_today,
-            'Schedule Donation',
-            'Plan your next blood donation',
-            Colors.blue,
-            () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ScheduleDonationScreen(),
-              ),
-            ),
-          ),
-          SizedBox(height: 16),
-          
-          SizedBox(height: 16),
           _buildDashboardCard(
             context,
             Icons.emoji_events,

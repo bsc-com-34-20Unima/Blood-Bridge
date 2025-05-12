@@ -1,4 +1,3 @@
-// ignore: file_names
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'dart:convert';
@@ -15,8 +14,8 @@ class _EventsState extends State<Events> {
   final TextEditingController _searchController = TextEditingController();
   List<Event> _events = [];
   bool _isLoading = true;
-  String _activeFilter = 'Nearby';
-  List<String> _filters = ['Nearby', 'This Week', 'Weekend'];
+  String _activeFilter = 'Upcoming';
+  List<String> _filters = ['Upcoming', 'This Week', 'Weekend'];
 
   // Example donorId for testing
   final String donorId = '12345'; // Replace with actual donor ID from your authentication logic
@@ -28,116 +27,129 @@ class _EventsState extends State<Events> {
   }
 
   Future<void> _fetchEvents() async {
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      // Default endpoint
-      String endpoint = 'events';
-      
-      // Apply filter if selected
-      if (_activeFilter == 'Nearby') {
-        endpoint = 'events/nearby?lat=35.00&lng=-84.00&radius=10';
-      } else if (_activeFilter == 'This Week') {
-        endpoint = 'events/this-week';
-      } else if (_activeFilter == 'Weekend') {
-        endpoint = 'events/weekend';
-      }
-      
-      // Add search query if any
-      if (_searchController.text.isNotEmpty) {
-        endpoint += endpoint.contains('?') 
-            ? '&search=${_searchController.text}' 
-            : '?search=${_searchController.text}';
-      }
-      
-      final response = await http.get(
-        Uri.parse('http://192.168.137.131:3005/$endpoint'),
-        headers: {'Content-Type': 'application/json'},
-      );
+  try {
+    // Default endpoint for upcoming events
+    String endpoint = 'events';
+    
+    // Apply filter if selected
+    if (_activeFilter == 'This Week') {
+      endpoint = 'events/this-week';
+    } else if (_activeFilter == 'Weekend') {
+      endpoint = 'events/weekend';
+    }
+    
+    // Add search query if any
+    if (_searchController.text.isNotEmpty) {
+      endpoint += endpoint.contains('?') 
+          ? '&search=${_searchController.text}' 
+          : '?search=${_searchController.text}';
+    }
+    
+    final response = await http.get(
+      Uri.parse('http://192.168.137.86:3004/$endpoint'),
+      headers: {'Content-Type': 'application/json'},
+    );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          _events = data.map((event) => Event.fromJson(event)).toList();
-          _isLoading = false;
-        });
-      } else {
-        // If the server returns an error
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to load events')),
-        );
-      }
-    } catch (e) {
+    if (response.statusCode == 200) {
+      final List<dynamic> data = json.decode(response.body);
+      
+      // Additional client-side filter to ensure only future events are shown
+      // This is a fallback in case the backend filter isn't working
+      final now = DateTime.now();
+      now.subtract(const Duration(hours: 1)); // Include events starting in the last hour
+      
+      setState(() {
+        _events = data
+            .map((event) => Event.fromJson(event))
+            .where((event) => event.eventDate.isAfter(now))
+            .toList();
+        _isLoading = false;
+      });
+    } else {
+      // If the server returns an error
       setState(() {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        const SnackBar(content: Text('Failed to load events')),
       );
-      
-      // For demo purposes, load sample data
-      _loadSampleData();
     }
+  } catch (e) {
+    setState(() {
+      _isLoading = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${e.toString()}')),
+    );
+    
+    // For demo purposes, load sample data but filter past events
+    _loadSampleData();
   }
+}
 
-  void _loadSampleData() {
-    _events = [
-      Event(
-        id: '1',
-        title: 'Community Blood Drive',
-        location: 'Central Hospital',
-        locationAddress: '123 Main Street',
-        eventDate: DateTime.now().add(const Duration(days: 2)),
-        startTime: '9:00 AM',
-        endTime: '4:00 PM',
-        description: 'Join us for our community blood drive to help those in need.',
-        availableSpots: 24,
-        distance: '0.8 miles away',
-      ),
-      Event(
-        id: '2',
-        title: 'University Donation Campaign',
-        location: 'State University Campus Center',
-        locationAddress: '456 University Blvd',
-        eventDate: DateTime.now().add(const Duration(days: 5)),
-        startTime: '10:00 AM',
-        endTime: '6:00 PM',
-        description: 'Special blood donation drive targeting university students and staff.',
-        availableSpots: 42,
-        distance: '1.3 miles away',
-      ),
-      Event(
-        id: '3',
-        title: 'Downtown Blood Bank Drive',
-        location: 'City Blood Bank',
-        locationAddress: '789 Downtown Avenue',
-        eventDate: DateTime.now().add(const Duration(days: 8)),
-        startTime: '8:00 AM',
-        endTime: '2:00 PM',
-        description: 'Regularly scheduled donation at the city blood bank.',
-        availableSpots: 16,
-        distance: '2.7 miles away',
-      ),
-      Event(
-        id: '4',
-        title: 'Weekend Community Drive',
-        location: 'Westside Community Center',
-        locationAddress: '321 West Road',
-        eventDate: DateTime.now().add(const Duration(days: 9)),
-        startTime: '10:00 AM',
-        endTime: '5:00 PM',
-        description: 'Weekend community blood drive with family activities.',
-        availableSpots: 30,
-        distance: '3.2 miles away',
-      ),
-    ];
-    setState(() {});
-  }
+// 4. Update the sample data method to filter out past events:
+void _loadSampleData() {
+  final List<Event> allEvents = [
+    Event(
+      id: '1',
+      title: 'Community Blood Drive',
+      location: 'Central Hospital',
+      locationAddress: '123 Main Street',
+      eventDate: DateTime.now().add(const Duration(days: 2)),
+      startTime: '9:00 AM',
+      endTime: '4:00 PM',
+      description: 'Join us for our community blood drive to help those in need.',
+      availableSpots: 24,
+      distance: '0.8 miles away',
+    ),
+    Event(
+      id: '2',
+      title: 'University Donation Campaign',
+      location: 'State University Campus Center',
+      locationAddress: '456 University Blvd',
+      eventDate: DateTime.now().add(const Duration(days: 5)),
+      startTime: '10:00 AM',
+      endTime: '6:00 PM',
+      description: 'Special blood donation drive targeting university students and staff.',
+      availableSpots: 42,
+      distance: '1.3 miles away',
+    ),
+    Event(
+      id: '3',
+      title: 'Downtown Blood Bank Drive',
+      location: 'City Blood Bank',
+      locationAddress: '789 Downtown Avenue',
+      eventDate: DateTime.now().add(const Duration(days: 8)),
+      startTime: '8:00 AM',
+      endTime: '2:00 PM',
+      description: 'Regularly scheduled donation at the city blood bank.',
+      availableSpots: 16,
+      distance: '2.7 miles away',
+    ),
+    Event(
+      id: '4',
+      title: 'Weekend Community Drive',
+      location: 'Westside Community Center',
+      locationAddress: '321 West Road',
+      eventDate: DateTime.now().add(const Duration(days: 9)),
+      startTime: '10:00 AM',
+      endTime: '5:00 PM',
+      description: 'Weekend community blood drive with family activities.',
+      availableSpots: 30,
+      distance: '3.2 miles away',
+    ),
+  ];
+  
+  // Filter to ensure only future events are shown
+  final now = DateTime.now();
+  _events = allEvents.where((event) => event.eventDate.isAfter(now)).toList();
+  
+  setState(() {});
+}
 
   void _applyFilter(String filter) {
     setState(() {
@@ -148,12 +160,13 @@ class _EventsState extends State<Events> {
 
   void _registerEvent(String eventId, String donorId) async {
     try {
+      // Fixed endpoint for registration
       final response = await http.post(
-        Uri.parse('192.168.24.173/events/'), // Correct endpoint for registration
+        Uri.parse('http://localhost:3005/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,
-          'donorId': donorId, // Include donorId in the request body
+          'donorId': donorId,
         }),
       );
 
@@ -161,10 +174,11 @@ class _EventsState extends State<Events> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registered successfully')),
         );
-        // Optionally, you can refresh the events list or update the local state
+        // Refresh the events list to show updated availability
+        _fetchEvents();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to register')),
+          SnackBar(content: Text('Failed to register: ${response.body}')),
         );
       }
     } catch (e) {
@@ -203,7 +217,7 @@ class _EventsState extends State<Events> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Blood Donation Events',
+                  'Donation Events',
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -212,7 +226,7 @@ class _EventsState extends State<Events> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Find and register for upcoming donation drives',
+                  'Find and register for upcoming events',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.white70,
@@ -247,23 +261,12 @@ class _EventsState extends State<Events> {
                 
                 const SizedBox(height: 16),
                 
-                // Filter Chips
+                // Filter Pills
                 SizedBox(
                   height: 36,
                   child: ListView(
                     scrollDirection: Axis.horizontal,
-                    children: [
-                      FilterChip(
-                        label: const Icon(Icons.filter_list, size: 16, color: Colors.white),
-                        backgroundColor: Colors.red.shade700,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        onSelected: (_) {},
-                      ),
-                      const SizedBox(width: 8),
-                      ..._filters.map((filter) => _buildFilterChip(filter)).toList(),
-                    ],
+                    children: _filters.map((filter) => _buildFilterPill(filter)).toList(),
                   ),
                 ),
               ],
@@ -275,7 +278,22 @@ class _EventsState extends State<Events> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _events.isEmpty
-                    ? const Center(child: Text('No events found'))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.event_busy, size: 64, color: Colors.grey.shade400),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No events found',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
                     : ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: _events.length,
@@ -284,32 +302,17 @@ class _EventsState extends State<Events> {
                             event: _events[index],
                             onRegister: _registerEvent,
                             onViewDetails: _viewDetails,
-                            donorId: donorId, // Pass donorId here
+                            donorId: donorId,
                           );
                         },
                       ),
-          ),
-          
-          // Bottom Navigation
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
-                  spreadRadius: 1,
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label) {
+  Widget _buildFilterPill(String label) {
     final bool isSelected = _activeFilter == label;
     
     return Padding(
@@ -330,44 +333,20 @@ class _EventsState extends State<Events> {
       ),
     );
   }
-
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
-    return InkWell(
-      onTap: () {},
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isActive ? Colors.red.shade600 : Colors.grey,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: isActive ? Colors.red.shade600 : Colors.grey,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class EventCard extends StatelessWidget {
   final Event event;
-  final void Function(String eventId, String donorId) onRegister; // Updated to include donorId
+  final void Function(String eventId, String donorId) onRegister;
   final void Function(String description) onViewDetails;
-  final String donorId; // Accept donorId
+  final String donorId;
 
   const EventCard({
     super.key,
     required this.event,
     required this.onRegister,
     required this.onViewDetails,
-    required this.donorId, // Accept donorId
+    required this.donorId,
   });
 
   @override
@@ -391,7 +370,7 @@ class EventCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Event Header
+          // Event Header with date badge
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -400,13 +379,39 @@ class EventCard extends StatelessWidget {
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
               ),
-              border: Border(
-                left: BorderSide(color: Colors.red.shade500, width: 4),
-              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Date badge
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade500,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        DateFormat('dd').format(event.eventDate),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        DateFormat('MMM').format(event.eventDate),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,21 +424,15 @@ class EventCard extends StatelessWidget {
                           color: Colors.black87,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${event.startTime} - ${event.endTime}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
                     ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade600,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    event.distance,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white,
-                    ),
                   ),
                 ),
               ],
@@ -463,38 +462,6 @@ class EventCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 
-                // Date
-                Row(
-                  children: [
-                    Icon(Icons.calendar_today, size: 18, color: Colors.red.shade500),
-                    const SizedBox(width: 12),
-                    Text(
-                      dateFormatter.format(event.eventDate),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
-                // Time
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 18, color: Colors.red.shade500),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${event.startTime} - ${event.endTime}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                
                 // Available Spots
                 Row(
                   children: [
@@ -516,30 +483,30 @@ class EventCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    ElevatedButton(
-                      onPressed: () => onRegister(event.id, donorId), // Pass donorId here
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: event.availableSpots > 0
+                            ? () => onRegister(event.id, donorId)
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          disabledBackgroundColor: Colors.grey.shade300,
                         ),
+                        child: const Text('Register'),
                       ),
-                      child: const Text('Register'),
                     ),
+                    const SizedBox(width: 8),
                     TextButton(
                       onPressed: () => onViewDetails(event.description),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.red.shade600,
                       ),
-                      child: Row(
-                        children: [
-                          const Text('View Details'),
-                          const SizedBox(width: 4),
-                          Icon(Icons.chevron_right, size: 16, color: Colors.red.shade600),
-                        ],
-                      ),
+                      child: const Text('Details'),
                     ),
                   ],
                 ),
@@ -588,7 +555,7 @@ class Event {
       endTime: json['endTime'],
       description: json['description'],
       availableSpots: json['availableSpots'] ?? 0,
-      distance: json['distance'] != null ? '${json['distance']} ${json['distanceUnit'] ?? 'miles away'}' : 'Unknown distance',
+      distance: json['distance'] != null ? '${json['distance']} ${json['distanceUnit'] ?? 'miles away'}' : '',
     );
   }
 }

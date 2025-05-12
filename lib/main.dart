@@ -64,7 +64,6 @@ class _MyAppState extends State<MyApp> {
       ),
       home: const LoginScreen(),
       routes: {
-        '/': (context) => const LoginScreen(),
         '/forgot-password': (context) => const ForgotPasswordPage(),
         '/dashboard': (context) => const DashboardPage(),
         '/bloodInventory': (context) => BloodInventoryPage(),

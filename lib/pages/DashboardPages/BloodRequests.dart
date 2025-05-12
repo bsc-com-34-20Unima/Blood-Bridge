@@ -258,7 +258,7 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
                           ),
                         ),
                         child: const Text(
-                          'Find Matching Donors',
+                          ' Find Matching Donors ',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

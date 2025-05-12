@@ -1,3 +1,4 @@
+import 'package:bloodbridge/pages/forgetpassword.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
@@ -190,7 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
       child: TextButton(
         onPressed: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const SignUpPage()),
+          MaterialPageRoute(builder: (context) => const ForgotPasswordPage()),
         ),
         child: const Text(
           "Forgot Password?",

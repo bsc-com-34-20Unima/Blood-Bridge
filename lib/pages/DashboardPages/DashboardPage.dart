@@ -152,23 +152,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   const SizedBox(height: 16),
                   FutureBuilder<int>(
                     future: _eventsFuture,
-                    builder: (context, eventSnapshot) {
-                      if (eventSnapshot.connectionState == ConnectionState.waiting) {
-                        return _buildDashboardCard(
-                          title: "Upcoming Events",
-                          value: "Loading...",
-                          icon: LucideIcons.calendarClock,
-                          iconColor: Colors.green,
-                        );
-                      } else if (eventSnapshot.hasError) {
-                        return _buildDashboardCard(
-                          title: "Upcoming Events",
-                          value: "Error loading",
-                          icon: LucideIcons.calendarClock,
-                          iconColor: Colors.green,
-                        );
-                      }
-                      
+                    builder: (context, eventSnapshot) { 
                       final eventCount = eventSnapshot.data ?? 0;
                       return _buildDashboardCard(
                         title: "Upcoming Events",

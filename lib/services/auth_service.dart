@@ -173,5 +173,8 @@ Future<void> logout() async {
       default:
         throw Exception('Unsupported method: $method');
     }
+    
   }
+
+  
 }

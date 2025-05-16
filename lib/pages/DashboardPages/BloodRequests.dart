@@ -84,7 +84,6 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
       ),
     );
   }
-
   // Helper to show success messages
   void _showSuccess(String message) {
     if (!mounted) return;
@@ -102,6 +101,7 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
         title: const Text(''),
         centerTitle: true,
         elevation: 1,
@@ -252,15 +252,16 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          minimumSize: const Size(200, 50),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                         child: const Text(
-                          'Find Matching Donors',
+                          'Find matching donors',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

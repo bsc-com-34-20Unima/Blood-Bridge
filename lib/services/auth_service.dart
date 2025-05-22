@@ -10,7 +10,7 @@ import 'package:path/path.dart' as path;
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://192.168.28.63:3004';
+  final String _baseUrl = 'http://192.168.28.248:3004';
   
   // Get stored token
   Future<String?> getToken() async {

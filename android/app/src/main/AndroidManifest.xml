@@ -29,12 +29,28 @@
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
 
-                 <intent-filter>
-                      <action android:name="android.intent.action.VIEW" />
-                       <category android:name="android.intent.category.DEFAULT" />
-                       <category android:name="android.intent.category.BROWSABLE" />
-                       <data android:scheme="bloodbridge" android:host="auth" />
-                 </intent-filter>
+                <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- Add your URL scheme and host -->
+                <!-- Replace 'example.com' with your actual domain -->
+                <data 
+                    android:scheme="https" 
+                    android:host="example.com" 
+                    android:pathPattern="/reset-password.*" />
+            </intent-filter>
+
+            <!-- Add an app-specific scheme if you want to support custom URLs -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- Replace 'bloodbridge' with your preferred custom URL scheme -->
+                <data android:scheme="bloodbridge" />
+            </intent-filter>
             
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

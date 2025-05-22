@@ -10,7 +10,7 @@ import 'package:path/path.dart' as path;
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://192.168.137.86:3004';
+  final String _baseUrl = 'http://localhost:3005';
   
   // Get stored token
   Future<String?> getToken() async {
@@ -296,6 +296,79 @@ class AuthService {
       }
     } catch (e) {
       throw Exception('Profile update failed: ${e.toString()}');
+    }
+    
+  }
+
+    // Send forgot password request
+  Future<void> forgotPassword(String email) async {
+    try {
+      developer.log('Sending forgot password request for: $email');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      developer.log('Forgot password response: ${response.statusCode}');
+      
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to send reset email');
+      }
+      
+      // Success - no need to return anything
+      developer.log('Reset password email sent successfully');
+    } catch (e) {
+      developer.log('Error sending reset password email: $e');
+      throw Exception('Failed to send reset email: ${e.toString()}');
+    }
+  }
+
+  // Reset password with token
+  Future<void> resetPassword({required String token, required String newPassword}) async {
+    try {
+      developer.log('Resetting password with token');
+      
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'token': token,
+          'newPassword': newPassword,
+        }),
+      );
+
+      developer.log('Reset password response: ${response.statusCode}');
+      
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        final errorData = json.decode(response.body);
+        throw Exception(errorData['message'] ?? 'Failed to reset password');
+      }
+      
+      // Success - no need to return anything
+      developer.log('Password reset successful');
+    } catch (e) {
+      developer.log('Error resetting password: $e');
+      throw Exception('Failed to reset password: ${e.toString()}');
+    }
+  }
+
+  // Validate reset token
+  Future<bool> validateResetToken(String token) async {
+    try {
+      developer.log('Validating reset token');
+      
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/validate-reset-token?token=$token'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      developer.log('Error validating reset token: $e');
+      return false;
     }
   }
 }

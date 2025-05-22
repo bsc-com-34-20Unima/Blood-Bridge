@@ -12,7 +12,7 @@ class DonorSettingsScreen extends StatefulWidget {
 }
 
 class _DonorSettingsScreenState extends State<DonorSettingsScreen> {
-  final String _baseUrl = 'http://192.168.137.86:3004';
+  final String _baseUrl = 'http://localhost:3005';
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;

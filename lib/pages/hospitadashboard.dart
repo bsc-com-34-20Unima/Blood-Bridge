@@ -3,8 +3,10 @@ import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
 import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
 import 'package:bloodbridge/pages/DashboardPages/donation_scheduling.dart';
-import 'package:bloodbridge/pages/Settings/Alerts.dart';
-import 'package:bloodbridge/pages/Settings/Settings.dart';
+import 'package:bloodbridge/pages/DashboardPages/donation_scheduling.dart';
+import 'package:bloodbridge/pages/DashboardPages/hospital_service.dart';
+import 'package:bloodbridge/pages/hospitalSettings/Alerts.dart';
+import 'package:bloodbridge/pages/hospitalSettings/changepassword.dart';
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 
@@ -35,6 +37,8 @@ class HospitalDashboard extends StatefulWidget {
 
 class _HospitalDashboardState extends State<HospitalDashboard> {
   int _currentIndex = 0;
+  String _hospitalName = "Loading..."; // Default placeholder
+  final HospitalService _hospitalService = HospitalService();
 
   final List<Widget> _pages = [
     DashboardPage(),
@@ -53,6 +57,35 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
     "Donation Scheduling",
     "Events",
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHospitalName();
+  }
+  
+  // Method to manually refresh the hospital name
+  void _refreshHospitalName() {
+    setState(() {
+      _hospitalName = "Loading...";
+    });
+    _fetchHospitalName();
+  }
+
+  // Method to fetch hospital name from backend
+  Future<void> _fetchHospitalName() async {
+    try {
+      final hospital = await _hospitalService.getCurrentHospital();
+      setState(() {
+        _hospitalName = hospital.name;
+      });
+    } catch (e) {
+      setState(() {
+        _hospitalName = "Hospital"; // Fallback name
+      });
+      print('Error fetching hospital name: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +111,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
             onPressed: () {
               // Settings action
               Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => SettingsPage()));
+                  MaterialPageRoute(builder: (context) => UpdateHospitalPage()));
             },
           ),
         ],
@@ -95,10 +128,41 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
                   children: [
                     Icon(Icons.local_hospital, size: 50, color: Colors.white),
                     SizedBox(height: 10),
-                    Text(
-                      "City General Hospital",
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
+                    _hospitalName == "Loading..." 
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              "Loading...",
+                              style: TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _hospitalName,
+                              style: TextStyle(color: Colors.white, fontSize: 18),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.refresh, color: Colors.white, size: 16),
+                              onPressed: _refreshHospitalName,
+                              padding: EdgeInsets.only(left: 4),
+                              constraints: BoxConstraints(),
+                              tooltip: 'Refresh hospital data',
+                            ),
+                          ],
+                        ),
                   ],
                 ),
               ),

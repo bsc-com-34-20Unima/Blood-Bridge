@@ -9,7 +9,7 @@ import 'package:bloodbridge/pages/widgets/quick_actions.dart';
 import 'package:bloodbridge/pages/widgets/achievements.dart';
 import 'package:bloodbridge/pages/widgets/support_section.dart';
 import 'package:bloodbridge/pages/widgets/Events.dart';
-import 'package:bloodbridge/pages/Settings/Settings.dart';
+import 'package:bloodbridge/pages/donorSettings/Setting.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});

@@ -1,5 +1,5 @@
-import 'package:bloodbridge/pages/Settings/changepassword.dart';
-import 'package:bloodbridge/pages/Settings/editprofile.dart';
+import 'package:bloodbridge/pages/donorSettings/changepasswords.dart';
+import 'package:bloodbridge/pages/donorSettings/editprofiles.dart';
 import 'package:bloodbridge/pages/login.dart';
 import 'package:bloodbridge/services/auth_service.dart';
 import 'package:flutter/material.dart';

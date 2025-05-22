@@ -3,8 +3,8 @@ import 'package:bloodbridge/pages/DashboardPages/DashboardPage.dart';
 import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
 import 'package:bloodbridge/pages/DashboardPages/donation_scheduling.dart';
-import 'package:bloodbridge/pages/Settings/Alerts.dart';
-import 'package:bloodbridge/pages/Settings/Settings.dart';
+import 'package:bloodbridge/pages/donorSettings/alerts.dart';
+import 'package:bloodbridge/pages/donorSettings/Setting.dart';
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 

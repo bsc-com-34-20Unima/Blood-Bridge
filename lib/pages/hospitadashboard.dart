@@ -4,8 +4,8 @@ import 'package:bloodbridge/pages/DashboardPages/Donors.dart';
 import 'package:bloodbridge/pages/DashboardPages/Events.dart';
 import 'package:bloodbridge/pages/DashboardPages/donation_scheduling.dart';
 import 'package:bloodbridge/pages/DashboardPages/hospital_service.dart';
-import 'package:bloodbridge/pages/Settings/Alerts.dart';
-import 'package:bloodbridge/pages/Settings/changepassword.dart';
+import 'package:bloodbridge/pages/hospitalSettings/Alerts.dart';
+import 'package:bloodbridge/pages/hospitalSettings/changepassword.dart';
 import 'package:flutter/material.dart';
 import 'package:bloodbridge/pages/DashboardPages/BloodRequests.dart';
 

@@ -1,10 +1,11 @@
 import 'package:bloodbridge/pages/forgetpassword.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bloodbridge/pages/SignUpPage.dart';
 import 'package:bloodbridge/pages/hospitadashboard.dart';
 import 'package:bloodbridge/screens/donor_dashboard_screen.dart';
-import 'package:bloodbridge/services/auth_service.dart'; // Make sure this import path is correct
+import 'package:bloodbridge/services/auth_service.dart';
 
 class LocationFailure implements Exception {
   final String message;
@@ -24,17 +25,17 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasswordVisible = false;
-  final String _baseUrl = 'http://192.168.137.86:3004';
+  final String _baseUrl = 'http://localhost:3005';
   final AuthService _authService = AuthService();
 
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        // 1. Check location services first - fail early if not available
+        // 1. Get current location
         final position = await _getCurrentPosition();
         
-        // 2. Login with location data
+        // 2. Authenticate with server
         final authResponse = await _authService.login(
           _emailController.text.trim(),
           _passwordController.text.trim(),
@@ -42,7 +43,15 @@ class _LoginScreenState extends State<LoginScreen> {
           longitude: position.longitude,
         );
 
-        // 3. Navigate to appropriate dashboard
+        // 3. Save hospital ID if user is a hospital
+        if (authResponse['role'] != 'donor' && authResponse['hospitalId'] != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('hospitalId', authResponse['hospitalId']);
+          await prefs.setString('authToken', authResponse['token']);
+          debugPrint('Saved hospitalId: ${authResponse['hospitalId']}');
+        }
+
+        // 4. Navigate to appropriate dashboard
         if (!mounted) return;
         Navigator.pushReplacement(
           context,
@@ -65,21 +74,23 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<Position> _getCurrentPosition() async {
     final isEnabled = await Geolocator.isLocationServiceEnabled();
     if (!isEnabled) {
-      throw LocationFailure(message: 'Location services are disabled. Please enable location services to continue.');
+      throw LocationFailure(
+          message: 'Location services are disabled. Please enable location services to continue.');
     }
 
     var permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        throw LocationFailure(message: 'Location permission denied. Location access is required to log in.');
+        throw LocationFailure(
+            message: 'Location permission denied. Location access is required to log in.');
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
       throw LocationFailure(
-        message: 'Location permissions permanently denied. Please enable location permissions in app settings to log in.'
-      );
+          message:
+              'Location permissions permanently denied. Please enable location permissions in app settings to log in.');
     }
 
     try {

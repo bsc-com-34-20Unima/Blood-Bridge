@@ -10,7 +10,7 @@ import 'package:path/path.dart' as path;
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://192.168.137.86:3004';
+  final String _baseUrl = 'http://localhost:3005';
   
   // Get stored token
   Future<String?> getToken() async {
@@ -297,6 +297,7 @@ class AuthService {
     } catch (e) {
       throw Exception('Profile update failed: ${e.toString()}');
     }
+    
   }
 
     // Send forgot password request

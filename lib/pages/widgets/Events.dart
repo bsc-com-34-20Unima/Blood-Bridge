@@ -50,7 +50,7 @@ class _EventsState extends State<Events> {
     }
     
     final response = await http.get(
-      Uri.parse('http://localhost:3005/$endpoint'),
+      Uri.parse('http://192.168.137.86:3004/$endpoint'),
       headers: {'Content-Type': 'application/json'},
     );
 

@@ -20,7 +20,7 @@ class _DonationSchedulePageState extends State<DonationSchedulePage> {
   late List<dynamic> _selectedEvents;
   
   // API base URL
-  final String baseUrl = 'http://localhost:3005/donation-scheduling';
+  final String baseUrl = 'http://192.168.137.86:3004/donation-scheduling';
   
   // Auth service instance
   final AuthService _authService = AuthService();

@@ -1,6 +1,6 @@
 class Constants {
   // Base configuration
-  static const String baseUrl = 'http://10.0.2.2:3004/api';
+  static const String baseUrl = 'http://192.168.137.86:3004/api';
   
   // Endpoints
   static const String testEndpoint = '/test';

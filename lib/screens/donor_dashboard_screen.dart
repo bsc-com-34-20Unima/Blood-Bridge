@@ -3,13 +3,13 @@ import 'package:bloodbridge/pages/widgets/notification_page.dart';
 import 'package:bloodbridge/pages/widgets/notification_service.dart';
 // Removed import for recent_notification_widget.dart as we don't need it anymore
 import 'package:flutter/material.dart';
-import '../pages/widgets/profile_summary.dart';
-import '../pages/widgets/urgent_requests.dart';
-import '../pages/widgets/quick_actions.dart';
-import '../pages/widgets/achievements.dart';
-import '../pages/widgets/support_section.dart';
-import '../pages/widgets/Events.dart';
-
+import 'package:bloodbridge/pages/widgets/profile_summary.dart';
+import 'package:bloodbridge/pages/widgets/urgent_requests.dart';
+import 'package:bloodbridge/pages/widgets/quick_actions.dart';
+import 'package:bloodbridge/pages/widgets/achievements.dart';
+import 'package:bloodbridge/pages/widgets/support_section.dart';
+import 'package:bloodbridge/pages/widgets/Events.dart';
+import 'package:bloodbridge/pages/donorSettings/Setting.dart';
 
 class DonorDashboardScreen extends StatefulWidget {
   const DonorDashboardScreen({super.key});
@@ -38,6 +38,7 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
     "Events",
     "Achievements",
     "Support Section",
+    "Settings",
   ];
 
   @override
@@ -64,6 +65,13 @@ class _DonorDashboardScreenState extends State<DonorDashboardScreen> {
             icon: const Icon(Icons.settings, color: Colors.white),
             onPressed: () {
               // Navigate to settings page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
+              ).then((_) {
+                // Refresh notifications when returning from settings
+                _refreshNotifications();
+              });
             },
           ),
         ],

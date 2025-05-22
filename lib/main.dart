@@ -30,6 +30,8 @@ class MyApp extends StatelessWidget {
         '/donors': (context) => DonorsPage(),
         '/requests': (context) => BloodRequests(),
         '/events': (context) => EventsPage(),
+        // Add the donor settings route
+        //'/donor-settings': (context) => const DonorSettingsScreen(),
       },
     );
   }

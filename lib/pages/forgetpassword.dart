@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
@@ -10,14 +11,32 @@ class ForgotPasswordPage extends StatefulWidget {
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController _emailController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
   bool _resetSent = false;
+  String _errorMessage = '';
+  final AuthService _authService = AuthService();
 
-  void _resetPassword() {
+  Future<void> _resetPassword() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _resetSent = true;
+        _isLoading = true;
+        _errorMessage = '';
       });
-      // Here you can integrate Firebase Auth or API request for password reset
+
+      try {
+        // Call the auth service to send reset email
+        await _authService.forgotPassword(_emailController.text);
+        
+        setState(() {
+          _resetSent = true;
+          _isLoading = false;
+        });
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = e.toString();
+        });
+      }
     }
   }
 
@@ -25,11 +44,11 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Forgot Password"),
+        title: const Text("Forgot Password"),
         centerTitle: true,
         backgroundColor: Colors.red,
-        iconTheme: IconThemeData(color: Colors.white),
-        titleTextStyle: TextStyle(
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
@@ -47,15 +66,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget _buildForm() {
     return Column(
       children: [
-        SizedBox(height: 40),
-        Icon(Icons.lock_reset_outlined, size: 80, color: Colors.redAccent),
-        SizedBox(height: 20),
-        Text(
+        const SizedBox(height: 40),
+        const Icon(Icons.lock_reset_outlined, size: 80, color: Colors.redAccent),
+        const SizedBox(height: 20),
+        const Text(
           "Enter your email to receive a password reset link",
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 20),
         Form(
           key: _formKey,
           child: TextFormField(
@@ -63,7 +82,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               labelText: "Email Address",
-              prefixIcon: Icon(Icons.email),
+              prefixIcon: const Icon(Icons.email),
               filled: true,
               fillColor: const Color.fromARGB(255, 253, 253, 253),
               border: OutlineInputBorder(
@@ -80,31 +99,42 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             },
           ),
         ),
-        SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _resetPassword,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        if (_errorMessage.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: Text(
+              _errorMessage,
+              style: const TextStyle(color: Colors.red),
+              textAlign: TextAlign.center,
             ),
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
           ),
-          child: Text(
-            "Reset Password",
-            style: TextStyle(fontSize: 16, color: Colors.white),
-          ),
-        ),
+        const SizedBox(height: 20),
+        _isLoading
+            ? const CircularProgressIndicator(color: Colors.red)
+            : ElevatedButton(
+                onPressed: _resetPassword,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                ),
+                child: const Text(
+                  "Reset Password",
+                  style: TextStyle(fontSize: 16, color: Colors.white),
+                ),
+              ),
         TextButton(
           onPressed: () {
             Navigator.pop(context);
           },
-          child: Text(
+          child: const Text(
             "Back to Login",
             style: TextStyle(color: Colors.red),
           ),
         ),
-        SizedBox(height: 40),
+        const SizedBox(height: 40),
       ],
     );
   }
@@ -112,15 +142,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget _buildConfirmation() {
     return Column(
       children: [
-        SizedBox(height: 40),
-        Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
-        SizedBox(height: 20),
-        Text(
+        const SizedBox(height: 40),
+        const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
+        const SizedBox(height: 20),
+        const Text(
           "A password reset link has been sent to your email.",
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16),
         ),
-        SizedBox(height: 20),
+        const SizedBox(height: 10),
+        const Text(
+          "Check your inbox and spam folder. Click the link in the email to reset your password.",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14),
+        ),
+        const SizedBox(height: 20),
         ElevatedButton(
           onPressed: () {
             Navigator.pop(context);
@@ -130,14 +166,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            padding: EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
           ),
-          child: Text(
+          child: const Text(
             "Back to Login",
             style: TextStyle(fontSize: 16, color: Colors.white),
           ),
         ),
-        SizedBox(height: 40),
+        const SizedBox(height: 40),
       ],
     );
   }

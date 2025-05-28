@@ -18,7 +18,7 @@ class _NotificationBadgeState extends State<NotificationBadge> {
   bool _isLoading = false;
   
   // API base URL
-  final String baseUrl = 'http://192.168.137.86:3004/donation-scheduling';
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donation-scheduling';
 
   @override
   void initState() {

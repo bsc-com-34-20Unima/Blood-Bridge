@@ -18,7 +18,7 @@ class _NotificationPageState extends State<NotificationPage> {
   bool _isLoading = true;
   
   // API base URL
-  final String baseUrl = 'http://192.168.137.86:3004/donation-scheduling';
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donation-scheduling';
 
   @override
   void initState() {

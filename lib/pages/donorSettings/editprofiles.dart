@@ -28,7 +28,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final AuthService _authService = AuthService();
   
   // Base URL for API - same as in AuthService
-  final String _baseUrl = 'http://192.168.137.86:3004';
+  final String _baseUrl = 'https://blood-bridge-2f7x.onrender.com';
   
   bool _isLoading = false;
   bool _isLoadingUserId = false;

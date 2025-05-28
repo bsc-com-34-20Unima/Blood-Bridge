@@ -12,7 +12,7 @@ class DonorSettingsScreen extends StatefulWidget {
 }
 
 class _DonorSettingsScreenState extends State<DonorSettingsScreen> {
-  final String _baseUrl = 'http://localhost:3005';
+  final String _baseUrl = 'https://blood-bridge-2f7x.onrender.com';
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;

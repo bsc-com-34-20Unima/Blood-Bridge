@@ -10,7 +10,7 @@ import 'package:path/path.dart' as path;
 enum UserRole { donor, hospital }
 
 class AuthService {
-  final String _baseUrl = 'http://localhost:3005';
+  final String _baseUrl = 'https://blood-bridge-2f7x.onrender.com';
   
   // Get stored token
   Future<String?> getToken() async {

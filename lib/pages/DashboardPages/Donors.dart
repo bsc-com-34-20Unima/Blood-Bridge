@@ -55,7 +55,7 @@ class Donor {
 
 // DonorService class from the first document
 class DonorService {
-  final String baseUrl = 'http://192.168.137.86:3004/donors'; // Change this to your actual API URL
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donors'; // Change this to your actual API URL
   
   Future<List<Donor>> getDonors({String? bloodGroup, String? status, String? search}) async {
     try {
@@ -966,7 +966,7 @@ class _AddDonorPageState extends State<AddDonorPage> {
 
         // Make POST request to create donor
         final response = await http.post(
-          Uri.parse('http://10.0.2.2:3004/donors'),
+          Uri.parse('https://blood-bridge-2f7x.onrender.com/donors'),
           headers: {'Content-Type': 'application/json'},
           body: json.encode(donorData),
         );

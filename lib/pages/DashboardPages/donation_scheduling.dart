@@ -20,7 +20,7 @@ class _DonationSchedulePageState extends State<DonationSchedulePage> {
   late List<dynamic> _selectedEvents;
   
   // API base URL
-  final String baseUrl = 'http://192.168.137.86:3004/donation-scheduling';
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donation-scheduling';
   
   // Auth service instance
   final AuthService _authService = AuthService();
@@ -541,7 +541,7 @@ class _CreateDonationScheduleFormState extends State<CreateDonationScheduleForm>
   ];
   
   // API base URL
-  final String baseUrl = 'http://localhost:3005/donation-scheduling';
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donation-scheduling';
   
   // Auth service
   final AuthService _authService = AuthService();

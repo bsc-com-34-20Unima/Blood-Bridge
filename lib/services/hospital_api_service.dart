@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class HospitalService {
   // Base URL for your API
-  final String baseUrl = 'http://localhost:3005'; // Replace with your actual backend URL
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com'; // Replace with your actual backend URL
   
   // Method to get hospital name from the backend
   Future<String> getHospitalName() async {

@@ -4,7 +4,7 @@ import 'package:bloodbridge/pages/DashboardPages/BloodInventory.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.137.86:3004';
+  static const String baseUrl = 'https://blood-bridge-2f7x.onrender.com';
 
   // Fetch inventory data from the backend
   Future<List<BloodInventory>> fetchInventory() async {

@@ -50,7 +50,7 @@ class _EventsState extends State<Events> {
     }
     
     final response = await http.get(
-      Uri.parse('http://192.168.137.86:3004/$endpoint'),
+      Uri.parse('https://blood-bridge-2f7x.onrender.com/$endpoint'),
       headers: {'Content-Type': 'application/json'},
     );
 
@@ -162,7 +162,7 @@ void _loadSampleData() {
     try {
       // Fixed endpoint for registration
       final response = await http.post(
-        Uri.parse('http://localhost:3005/events/register'),
+        Uri.parse('https://blood-bridge-2f7x.onrender.com/events/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'eventId': eventId,

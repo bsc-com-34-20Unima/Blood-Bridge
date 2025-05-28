@@ -56,7 +56,7 @@ class _AchievementsState extends State<Achievements> {
     try {
       // Fetch donor data from the backend
       final donorResponse = await http.get(
-        Uri.parse('http://localhost:3005/donors/$userId'),
+        Uri.parse('https://blood-bridge-2f7x.onrender.com/donors/$userId'),
       );
       
       if (donorResponse.statusCode == 200) {

@@ -86,7 +86,7 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
 
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Hospital details updated successfully',
                 style: TextStyle(color: Colors.white)),
             backgroundColor: Colors.green,
@@ -114,6 +114,42 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
     Navigator.of(context).pushReplacementNamed('/login');
   }
 
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Logout Confirmation"),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            child: const Text("Cancel"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: const Text("Logout"),
+            onPressed: () {
+              Navigator.pop(context);
+              _logout();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _buildBoxDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.grey[200],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide.none,
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -127,13 +163,13 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
         ),
         backgroundColor: Colors.red[700],
         iconTheme: const IconThemeData(color: Colors.white),
+         automaticallyImplyLeading: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
             onPressed: () {
               _showLogoutConfirmationDialog(context);
-
             },
           ),
         ],
@@ -146,33 +182,33 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
                 key: _formKey,
                 child: ListView(
                   children: [
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Hospital Name'),
-                      validator: (value) => value!.isEmpty ? 'Enter name' : null,
+                      decoration: _buildBoxDecoration('Hospital Name'),
+                      validator: (value) => value == null || value.isEmpty
+                          ? 'Please enter hospital name'
+                          : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'Email'),
+                      decoration: _buildBoxDecoration('Email'),
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) =>
-                          value!.isEmpty || !value.contains('@')
-                              ? 'Enter valid email'
+                          value == null || !value.contains('@')
+                              ? 'Enter a valid email'
                               : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'New Password',
+                      decoration: _buildBoxDecoration('New Password').copyWith(
                         suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
+                          icon: Icon(_obscurePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off),
                           onPressed: () {
                             setState(() {
                               _obscurePassword = !_obscurePassword;
@@ -180,84 +216,30 @@ class _UpdateHospitalPageState extends State<UpdateHospitalPage> {
                           },
                         ),
                       ),
-                      validator: (value) {
-                        if (value != null &&
-                            value.isNotEmpty &&
-                            value.length < 6) {
-                          return 'Password must be at least 6 characters';
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 20),
-                    _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : ElevatedButton(
-                            onPressed: _updateHospital,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _updateHospital,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red[700],
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
+                              color: Colors.white,
+                            )
+                          : const Text(
+                              'Update Details',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                            child: const Text('Update Info'),
-                          ),
+                    ),
                   ],
                 ),
               ),
             ),
     );
-  }
-
-  Future<void> _showLogoutConfirmationDialog(BuildContext context) async {
-    bool? shouldLogout = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Logout"),
-          content: const Text("Are you sure you want to log out?"),
-          actions: [
-            TextButton(
-              child: const Text("Cancel"),
-              onPressed: () => Navigator.pop(context, false),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
-              child: const Text("Logout",
-                  style: TextStyle(color: Colors.white)),
-              onPressed: () => Navigator.pop(context, true),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldLogout == true) {
-      final scaffoldMessenger = ScaffoldMessenger.of(context);
-      final navigator = Navigator.of(context);
-
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
-      );
-
-      try {
-        await _authService.logout();
-        navigator.pop(); // Close loading dialog
-        
-        // Navigate to login screen and clear navigation stack
-        navigator.pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
-      } catch (e) {
-        navigator.pop(); // Close loading dialog
-        scaffoldMessenger.showSnackBar(
-          SnackBar(content: Text('Logout failed: ${e.toString()}')),
-        );
-      }
-    }
   }
 }

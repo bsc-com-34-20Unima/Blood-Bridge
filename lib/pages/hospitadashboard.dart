@@ -99,13 +99,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => AlertPage()));
-            },
-          ),
+      
           IconButton(
             icon: Icon(Icons.settings, color: Colors.white),
             onPressed: () {

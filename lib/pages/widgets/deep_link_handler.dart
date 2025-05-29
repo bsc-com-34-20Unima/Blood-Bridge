@@ -3,11 +3,12 @@ import 'package:bloodbridge/pages/widgets/reset_password.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer' as developer;
-import 'package:uni_links/uni_links.dart';
+import 'package:app_links/app_links.dart';
 
 class DeepLinkHandler {
   static bool _initialUriHandled = false;
   static StreamSubscription? _deepLinkSubscription;
+  static final AppLinks _appLinks = AppLinks(); // Create AppLinks instance
 
   // Initialize and handle deep links
   static Future<void> setupDeepLinks(BuildContext context) async {
@@ -15,7 +16,7 @@ class DeepLinkHandler {
     if (!_initialUriHandled) {
       _initialUriHandled = true;
       try {
-        final initialUri = await getInitialUri();
+        final initialUri = await _appLinks.getInitialAppLink(); // Use AppLinks method
         if (initialUri != null) {
           _handleDeepLink(initialUri, context);
         }
@@ -29,10 +30,8 @@ class DeepLinkHandler {
     }
 
     // Listen for subsequent deep links
-    _deepLinkSubscription = uriLinkStream.listen((Uri? uri) {
-      if (uri != null) {
-        _handleDeepLink(uri, context);
-      }
+    _deepLinkSubscription = _appLinks.allUriLinkStream.listen((Uri uri) {
+      _handleDeepLink(uri, context);
     }, onError: (error) {
       developer.log('Deep link error: $error');
     });

@@ -38,7 +38,7 @@
                 <!-- Replace 'example.com' with your actual domain -->
                 <data 
                     android:scheme="https" 
-                    android:host="example.com" 
+                    android:host="blood-bridge-2f7x.onrender.com" 
                     android:pathPattern="/reset-password.*" />
             </intent-filter>
 

@@ -241,6 +241,7 @@ class _SignUpPageState extends State<SignUpPage> {
                 'Phone Number',
                 validator: (value) => value!.length < 8 ? 'Too short' : null,
                 keyboardType: TextInputType.phone,
+                hintText: '+265885043356',
               ),
               _buildTextFormField(
                 'donations',
@@ -323,6 +324,7 @@ class _SignUpPageState extends State<SignUpPage> {
     bool obscureText = false,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
+    String? hintText,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -331,6 +333,7 @@ class _SignUpPageState extends State<SignUpPage> {
         obscureText: obscureText,
         decoration: InputDecoration(
           labelText: label,
+          hintText: hintText,
           border: const OutlineInputBorder(),
         ),
         validator: validator,

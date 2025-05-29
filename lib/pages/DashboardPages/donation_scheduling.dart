@@ -495,7 +495,7 @@ class DonationScheduleCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                ),
+                ),     
               ),
             ),
           ],

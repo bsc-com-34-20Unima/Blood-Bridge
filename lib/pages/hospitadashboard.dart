@@ -52,8 +52,8 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
   final List<String> _titles = [
     "Dashboard",
     "Blood Inventory",
-    "Donors",
-    "Requests",
+    "Blood Donors",
+    "Blood Requests",
     "Donation Scheduling",
     "Events",
   ];
@@ -183,7 +183,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
             ),
             ListTile(
               leading: Icon(Icons.people, color: Colors.red),
-              title: Text("Donors"),
+              title: Text("Blood Donors"),
               onTap: () {
                 setState(() {
                   _currentIndex = 2;
@@ -193,7 +193,7 @@ class _HospitalDashboardState extends State<HospitalDashboard> {
             ),
             ListTile(
               leading: Icon(Icons.list, color: Colors.red),
-              title: Text("Requests"),
+              title: Text("Blood Requests"),
               onTap: () {
                 setState(() {
                   _currentIndex = 3;

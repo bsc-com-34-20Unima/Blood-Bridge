@@ -573,7 +573,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
       case DonorStatus.ACTIVE:
         return "Your are an active donor. You can schedule donations when eligible.";
       case DonorStatus.PENDING:
-        return "Your account is pending verification. Please wait for administrator approval.";
+        return "Your account is pending verification. Please wait for further info from the recent donation center.";
       case DonorStatus.RESTRICTED:
         return "Your account is restricted, please seek medical attention. Please contact support for more information.";
       case DonorStatus.INACTIVE:
@@ -757,7 +757,7 @@ class _ProfileSummaryState extends State<ProfileSummary> with SingleTickerProvid
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        "Your account is currently inactive. Please update your profile or contact support.",
+                        "Your account is currently inactive. Please seek your recent donation center or contact support.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,

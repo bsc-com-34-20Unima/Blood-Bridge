@@ -105,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const Divider(),
 
             // Notifications Section
-            const Text(
+            /*const Text(
               "Notifications",
               style: TextStyle(
                 fontSize: 18,
@@ -138,7 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
 
-            const Divider(),
+            const Divider(),*/
 
             // Privacy Section
             const Text(

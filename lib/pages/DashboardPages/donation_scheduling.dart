@@ -490,31 +490,7 @@ class DonationScheduleCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        ElevatedButton(
-  onPressed: () {
-    // Use context to access the parent state directly
-    final parentState = context.findAncestorStateOfType<_DonationSchedulePageState>();
-    if (parentState != null) {
-      parentState._showManageScheduleDialog(context, schedule);
-    }
-  },
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.red.withOpacity(0.1),
-    foregroundColor: Colors.red,
-    textStyle: const TextStyle(
-      fontSize: 12.0,
-      fontWeight: FontWeight.bold,
-    ),
-    padding: const EdgeInsets.symmetric(
-      horizontal: 16.0,
-      vertical: 8.0,
-    ),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(4.0),
-    ),
-  ),
-  child: const Text('Manage'),
-)
+                   
 
                       ],
                     ),

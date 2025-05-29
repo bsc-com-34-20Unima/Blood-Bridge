@@ -131,6 +131,7 @@ class _NotificationPageState extends State<NotificationPage> {
       appBar: AppBar(
         title: const Text('Notifications', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.red,
+        automaticallyImplyLeading: false, // This removes the back arrow
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.red))
@@ -246,27 +247,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   style: const TextStyle(fontSize: 16.0),
                 ),
                 
-                const SizedBox(height: 32.0),
-                
-                // Schedule appointment button
-                ElevatedButton(
-                  onPressed: () {
-                    // Navigate to donation scheduling or details page
-                    Navigator.pop(context);
-                    // You would implement navigation to the scheduling page here
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Navigating to appointment scheduling...'))
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  ),
-                  child: const Text(
-                    'Schedule Appointment',
-                    style: TextStyle(fontSize: 16.0),
-                  ),
-                ),
+                // Removed the Schedule Appointment button section
               ],
             ),
           );

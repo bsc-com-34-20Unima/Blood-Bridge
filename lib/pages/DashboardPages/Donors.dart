@@ -503,15 +503,6 @@ class _DonorsPageState extends State<DonorsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Donor Management"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _fetchDonors,
-          ),
-        ],
-      ),
       body: Column(
         children: [
           Padding(
@@ -519,10 +510,22 @@ class _DonorsPageState extends State<DonorsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Filter Donors",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+               Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "Filter Donors",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.refresh),
+                      onPressed: _fetchDonors,
+                      tooltip: 'Refresh',
+                      color: Colors.red.shade700,
+                    ),
+                  ],
                 ),
+                 
                 SizedBox(height: 10),
                 TextField(
                   decoration: InputDecoration(
@@ -586,6 +589,7 @@ class _DonorsPageState extends State<DonorsPage> {
                         },
                       ),
                     ),
+                      
                   ],
                 ),
               ],

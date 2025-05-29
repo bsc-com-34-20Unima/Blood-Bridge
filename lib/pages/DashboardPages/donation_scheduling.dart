@@ -24,6 +24,8 @@ class _DonationSchedulePageState extends State<DonationSchedulePage> {
   
   // Auth service instance
   final AuthService _authService = AuthService();
+
+  
   
   @override
   void initState() {
@@ -37,6 +39,30 @@ class _DonationSchedulePageState extends State<DonationSchedulePage> {
   }
   
  // In the _DonationSchedulePageState class, modify the _loadEvents method
+
+ // Add this method to your _DonationSchedulePageState class
+void _showManageScheduleDialog(BuildContext context, dynamic schedule) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16.0)),
+    ),
+    builder: (context) => ManageScheduleDialog(
+      schedule: schedule,
+      onScheduleUpdated: () {
+        // Reload schedules after update
+        _loadEvents();
+        _loadSchedulesForDate(_selectedDay);
+      },
+      onScheduleDeleted: () {
+        // Reload schedules after deletion
+        _loadEvents();
+        _loadSchedulesForDate(_selectedDay);
+      },
+    ),
+  );
+}
 
 Future<void> _loadEvents() async {
   final int year = _focusedDay.year;
@@ -92,6 +118,9 @@ Future<void> _loadEvents() async {
     });
   }
 }
+
+
+
   
   Future<void> _loadSchedulesForDate(DateTime date) async {
     final String formattedDate = DateFormat('yyyy-MM-dd').format(date);
@@ -473,27 +502,31 @@ class DonationScheduleCard extends StatelessWidget {
                           ),
                         ),
                         ElevatedButton(
-                          onPressed: () {
-                            // Navigate to manage donation screen
-                            // This would typically navigate to a detailed view of the donation session
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.withOpacity(0.1),
-                            foregroundColor: Colors.red,
-                            textStyle: const TextStyle(
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4.0),
-                            ),
-                          ),
-                          child: const Text('Manage'),
-                        ),
+  onPressed: () {
+    // Use context to access the parent state directly
+    final parentState = context.findAncestorStateOfType<_DonationSchedulePageState>();
+    if (parentState != null) {
+      parentState._showManageScheduleDialog(context, schedule);
+    }
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.red.withOpacity(0.1),
+    foregroundColor: Colors.red,
+    textStyle: const TextStyle(
+      fontSize: 12.0,
+      fontWeight: FontWeight.bold,
+    ),
+    padding: const EdgeInsets.symmetric(
+      horizontal: 16.0,
+      vertical: 8.0,
+    ),
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(4.0),
+    ),
+  ),
+  child: const Text('Manage'),
+)
+
                       ],
                     ),
                   ],
@@ -599,6 +632,10 @@ class _CreateDonationScheduleFormState extends State<CreateDonationScheduleForm>
     final period = timeOfDay.period == DayPeriod.am ? 'AM' : 'PM';
     return '$hour:$minute $period';
   }
+
+
+
+
   
 // In _CreateDonationScheduleFormState class, modify the _submitForm method
 Future<void> _submitForm() async {
@@ -941,6 +978,560 @@ Future<void> _submitForm() async {
                   },
                   child: const Text('Cancel'),
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// New ManageScheduleDialog class - add this to your file
+class ManageScheduleDialog extends StatefulWidget {
+  final dynamic schedule;
+  final VoidCallback onScheduleUpdated;
+  final VoidCallback onScheduleDeleted;
+  
+  const ManageScheduleDialog({
+    Key? key,
+    required this.schedule,
+    required this.onScheduleUpdated,
+    required this.onScheduleDeleted,
+  }) : super(key: key);
+  
+  @override
+  _ManageScheduleDialogState createState() => _ManageScheduleDialogState();
+}
+
+class _ManageScheduleDialogState extends State<ManageScheduleDialog> {
+  final _formKey = GlobalKey<FormState>();
+  
+  // Form fields - initialize from existing schedule
+  late String _bloodType;
+  late int _unitsRequired;
+  late DateTime _selectedDate;
+  late String _startTime;
+  late String _endTime;
+  late int _donorsNeeded;
+  late bool _isCritical;
+  late String _notes;
+  late String _location;
+  
+  // Blood type options
+  final List<String> _bloodTypes = [
+    'All', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'
+  ];
+  
+  // API base URL
+  final String baseUrl = 'https://blood-bridge-2f7x.onrender.com/donation-scheduling';
+  
+  // Auth service
+  final AuthService _authService = AuthService();
+  
+  @override
+  void initState() {
+    super.initState();
+    // Initialize form fields with existing schedule data
+    _bloodType = widget.schedule['bloodType'] ?? 'All';
+    _unitsRequired = widget.schedule['unitsRequired'] ?? 1;
+    _selectedDate = DateTime.parse(widget.schedule['scheduledDate'] ?? DateTime.now().toString());
+    _startTime = widget.schedule['startTime'] ?? '9:00 AM';
+    _endTime = widget.schedule['endTime'] ?? '11:00 AM';
+    _donorsNeeded = widget.schedule['donorsNeeded'] ?? 1;
+    _isCritical = widget.schedule['critical'] ?? false;
+    _notes = widget.schedule['notes'] ?? '';
+    _location = widget.schedule['location'] ?? '';
+  }
+  
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+    );
+    
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+  
+  Future<void> _selectStartTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _parseTimeString(_startTime),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _startTime = _formatTimeOfDay(picked);
+      });
+    }
+  }
+  
+  Future<void> _selectEndTime() async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: _parseTimeString(_endTime),
+    );
+    
+    if (picked != null) {
+      setState(() {
+        _endTime = _formatTimeOfDay(picked);
+      });
+    }
+  }
+  
+  TimeOfDay _parseTimeString(String timeString) {
+    // Parse "9:00 AM" format
+    final parts = timeString.split(' ');
+    final timeParts = parts[0].split(':');
+    int hour = int.parse(timeParts[0]);
+    final minute = int.parse(timeParts[1]);
+    final period = parts[1];
+    
+    if (period == 'PM' && hour != 12) {
+      hour += 12;
+    } else if (period == 'AM' && hour == 12) {
+      hour = 0;
+    }
+    
+    return TimeOfDay(hour: hour, minute: minute);
+  }
+  
+  String _formatTimeOfDay(TimeOfDay timeOfDay) {
+    final hour = timeOfDay.hourOfPeriod == 0 ? 12 : timeOfDay.hourOfPeriod;
+    final minute = timeOfDay.minute.toString().padLeft(2, '0');
+    final period = timeOfDay.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+  
+  Future<void> _updateSchedule() async {
+    if (_formKey.currentState!.validate()) {
+      final String? token = await _authService.getToken();
+      
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not authenticated. Please login again.'))
+        );
+        return;
+      }
+      
+      final String formattedDate = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      
+      final Map<String, dynamic> payload = {
+        'bloodType': _bloodType,
+        'unitsRequired': _unitsRequired,
+        'scheduledDate': formattedDate,
+        'startTime': _startTime,
+        'endTime': _endTime,
+        'donorsNeeded': _donorsNeeded,
+        'critical': _isCritical,
+        'notes': _notes,
+        'location': _location,
+      };
+      
+      try {
+        final response = await http.patch(
+          Uri.parse('$baseUrl/${widget.schedule['id']}'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(payload),
+        );
+        
+        if (response.statusCode == 200) {
+          Navigator.pop(context);
+          widget.onScheduleUpdated();
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Schedule updated successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to update schedule: ${response.statusCode}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Future<void> _deleteSchedule() async {
+    // Show confirmation dialog
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Schedule'),
+        content: const Text('Are you sure you want to delete this donation schedule? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed != true) return;
+    
+    final String? token = await _authService.getToken();
+    
+    if (token == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Not authenticated. Please login again.'))
+      );
+      return;
+    }
+    
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/${widget.schedule['id']}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        Navigator.pop(context);
+        widget.onScheduleDeleted();
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Schedule deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to delete schedule: ${response.statusCode}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (context, scrollController) {
+        return Container(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              controller: scrollController,
+              children: [
+                // Title with delete button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Manage Donation Schedule',
+                      style: TextStyle(
+                        fontSize: 20.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: _deleteSchedule,
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      tooltip: 'Delete Schedule',
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24.0),
+                
+                // Session ID display
+                Container(
+                  padding: const EdgeInsets.all(12.0),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Text(
+                    'Session ID: #${widget.schedule['id'].toString().substring(0, 5)}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16.0,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Date Picker Field
+                GestureDetector(
+                  onTap: () => _selectDate(context),
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Date',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      controller: TextEditingController(
+                        text: DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a date';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Location Field
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    hintText: 'Enter donation location',
+                    border: OutlineInputBorder(),
+                  ),
+                  initialValue: _location,
+                  onChanged: (value) {
+                    setState(() {
+                      _location = value;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a location';
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Blood Type
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Blood Type',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _bloodType,
+                  items: _bloodTypes.map((String type) {
+                    return DropdownMenuItem<String>(
+                      value: type,
+                      child: Text(type),
+                    );
+                  }).toList(),
+                  onChanged: (String? value) {
+                    setState(() {
+                      _bloodType = value!;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please select a blood type';
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Units Required
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Units Required',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  initialValue: _unitsRequired.toString(),
+                  onChanged: (value) {
+                    setState(() {
+                      _unitsRequired = int.tryParse(value) ?? 1;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the number of units required';
+                    }
+                    if (int.tryParse(value) == null || int.parse(value) < 1) {
+                      return 'Please enter a valid number (minimum 1)';
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Start Time
+                GestureDetector(
+                  onTap: _selectStartTime,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Start Time',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.access_time),
+                      ),
+                      controller: TextEditingController(text: _startTime),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a start time';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // End Time
+                GestureDetector(
+                  onTap: _selectEndTime,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'End Time',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.access_time),
+                      ),
+                      controller: TextEditingController(text: _endTime),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select an end time';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Donors Needed
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Donors Needed',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.number,
+                  initialValue: _donorsNeeded.toString(),
+                  onChanged: (value) {
+                    setState(() {
+                      _donorsNeeded = int.tryParse(value) ?? 1;
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter the number of donors needed';
+                    }
+                    if (int.tryParse(value) == null || int.parse(value) < 1) {
+                      return 'Please enter a valid number (minimum 1)';
+                    }
+                    return null;
+                  },
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Critical Toggle
+                SwitchListTile(
+                  title: const Text('Critical Need'),
+                  subtitle: const Text('Mark this as a critical blood donation need'),
+                  value: _isCritical,
+                  activeColor: Colors.red,
+                  onChanged: (bool value) {
+                    setState(() {
+                      _isCritical = value;
+                    });
+                  },
+                ),
+                
+                const SizedBox(height: 16.0),
+                
+                // Notes
+                TextFormField(
+                  decoration: const InputDecoration(
+                    labelText: 'Additional Notes (Optional)',
+                    border: OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
+                  initialValue: _notes,
+                  onChanged: (value) {
+                    setState(() {
+                      _notes = value;
+                    });
+                  },
+                ),
+                
+                const SizedBox(height: 24.0),
+                
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _updateSchedule,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        ),
+                        child: const Text(
+                          'Update Schedule',
+                          style: TextStyle(fontSize: 16.0),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16.0),
               ],
             ),
           ),

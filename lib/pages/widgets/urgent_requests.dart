@@ -14,7 +14,7 @@ class _UrgentRequestsState extends State<UrgentRequests> {
   final _authService = AuthService();
   List<dynamic> _activeRequests = [];
   bool _isLoading = true;
-  String? _donorId; // To store the current donor's ID
+  String? _donorId;
 
   @override
   void initState() {
@@ -22,7 +22,6 @@ class _UrgentRequestsState extends State<UrgentRequests> {
     _loadUserData();
   }
 
-  // Load user ID and then fetch active requests
   Future<void> _loadUserData() async {
     try {
       final userId = await _authService.getUserId();
@@ -40,25 +39,24 @@ class _UrgentRequestsState extends State<UrgentRequests> {
     }
   }
 
-  // Fetch active blood requests for the donor
   Future<void> _fetchActiveRequests() async {
     if (_donorId == null) return;
     
     setState(() => _isLoading = true);
     try {
-      // Get requests for the donor
       final requests = await _requestService.getDonorRequests();
       
-      // Sort by creation date, newest first
       requests.sort((a, b) {
         DateTime dateA = DateTime.parse(a['createdAt'] ?? '2000-01-01');
         DateTime dateB = DateTime.parse(b['createdAt'] ?? '2000-01-01');
         return dateB.compareTo(dateA);
       });
       
-      // Filter for active or pending requests
+      // Include requests that are ACTIVE, PENDING, or PARTIALLY_FULFILLED
       final activeRequests = requests.where((request) => 
-        request['status'] == 'ACTIVE' || request['status'] == 'PENDING').toList();
+        request['status'] == 'ACTIVE' || 
+        request['status'] == 'PENDING' ||
+        request['status'] == 'PARTIALLY_FULFILLED').toList();
       
       setState(() {
         _activeRequests = activeRequests;
@@ -100,7 +98,6 @@ class _UrgentRequestsState extends State<UrgentRequests> {
   }
 
   Future<void> _respondToRequest(String requestId) async {
-    // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -127,7 +124,6 @@ class _UrgentRequestsState extends State<UrgentRequests> {
 
     if (confirmed == true) {
       try {
-        // Show loading indicator
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -142,30 +138,27 @@ class _UrgentRequestsState extends State<UrgentRequests> {
           ),
         );
         
-        // Call API to respond to the request
         final success = await _requestService.respondToRequest(requestId);
         
-        // Close loading dialog
         if (mounted) Navigator.of(context).pop();
         
         if (success) {
           _showSuccess('Thank you! The hospital has been notified of your availability.');
           
-          // Update the local state to reflect the change to FULFILLED
+          // Update the local state - the request might become PARTIALLY_FULFILLED
+          // instead of being removed entirely
           setState(() {
-            // Find the index of the responded request
             int requestIndex = _activeRequests.indexWhere((req) => req['id'] == requestId);
             if (requestIndex != -1) {
-              // Remove the request from active requests as it's now fulfilled
-              _activeRequests.removeAt(requestIndex);
+              // Mark that this donor has responded to this request
+              _activeRequests[requestIndex]['hasResponded'] = true;
             }
           });
           
-          // Refresh requests list from server
+          // Refresh requests list from server to get updated counts
           _fetchActiveRequests();
         }
       } catch (e) {
-        // Close loading dialog if open
         if (mounted) Navigator.of(context).pop();
         _showError('Failed to respond: ${e.toString()}');
       }
@@ -255,7 +248,6 @@ class _UrgentRequestsState extends State<UrgentRequests> {
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
-            // Display at most 3 requests to avoid overwhelming the UI
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
@@ -271,9 +263,12 @@ class _UrgentRequestsState extends State<UrgentRequests> {
                       ? '${request['distanceKm']?.toStringAsFixed(1)} km' 
                       : 'Nearby',
                   requestId: request['id'],
-                  urgent: index == 0, // Mark first request as urgent
+                  urgent: index == 0,
                   createdAt: request['createdAt'],
                   status: request['status'],
+                  donorResponses: request['donorResponses'] ?? [],
+                  quantityNeeded: request['quantity'] ?? 1,
+                  hasResponded: request['hasResponded'] ?? false,
                 );
               },
             ),
@@ -282,8 +277,6 @@ class _UrgentRequestsState extends State<UrgentRequests> {
               Center(
                 child: TextButton(
                   onPressed: () {
-                    // Navigate to a full list view
-                    // This would require a separate screen to be implemented
                     Navigator.of(context).pushNamed('/blood-requests');
                   },
                   child: Text(
@@ -307,9 +300,11 @@ class _UrgentRequestsState extends State<UrgentRequests> {
     required String requestId,
     String? createdAt,
     String? status,
+    List<dynamic> donorResponses = const [],
+    int quantityNeeded = 1,
+    bool hasResponded = false,
     bool urgent = false,
   }) {
-    // Format timestamp for display
     String timeAgo = '';
     if (createdAt != null) {
       try {
@@ -329,99 +324,196 @@ class _UrgentRequestsState extends State<UrgentRequests> {
       }
     }
 
+    // Calculate response statistics
+    int totalResponses = donorResponses.length;
+    Map<String, int> bloodTypeCount = {};
+    
+    for (var response in donorResponses) {
+      String responseBloodType = response['donor']?['bloodType'] ?? 'Unknown';
+      bloodTypeCount[responseBloodType] = (bloodTypeCount[responseBloodType] ?? 0) + 1;
+    }
+
+    // Determine the status color and button state
+    Color statusColor = Colors.red.shade100;
+    String buttonText = 'Respond';
+    bool isButtonEnabled = !hasResponded;
+    Color buttonColor = Colors.red;
+
+    if (status == 'PARTIALLY_FULFILLED') {
+      statusColor = Colors.orange.shade100;
+      if (hasResponded) {
+        buttonText = 'Responded';
+        isButtonEnabled = false;
+        buttonColor = Colors.green;
+      }
+    } else if (status == 'FULFILLED') {
+      statusColor = Colors.green.shade100;
+      buttonText = 'Fulfilled';
+      isButtonEnabled = false;
+      buttonColor = Colors.green;
+    } else if (hasResponded) {
+      buttonText = 'Responded';
+      isButtonEnabled = false;
+      buttonColor = Colors.green;
+    }
+
+    if (urgent && status != 'FULFILLED' && status != 'PARTIALLY_FULFILLED') {
+      statusColor = Colors.red.shade100;
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: urgent ? Colors.red.shade100 : Colors.red.shade50,
+        color: statusColor,
         borderRadius: BorderRadius.circular(8),
         border: urgent 
             ? Border.all(color: Colors.red.shade300, width: 1) 
             : null,
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: Colors.red.shade300),
-            ),
-            child: Text(
-              bloodType,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.red.shade700,
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.red.shade300),
+                ),
+                child: Text(
+                  bloodType,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red.shade700,
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        hospital,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    if (urgent)
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'URGENT',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            hospital,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
+                        if (urgent)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'URGENT',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '$distance away',
+                          style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                        ),
+                        if (timeAgo.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            '• $timeAgo',
+                            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      '$distance away',
-                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
-                    ),
-                    if (timeAgo.isNotEmpty) ...[
-                      const SizedBox(width: 8),
+              ),
+              ElevatedButton(
+                onPressed: isButtonEnabled 
+                    ? () => _respondToRequest(requestId)
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: buttonColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                child: Text(buttonText),
+              ),
+            ],
+          ),
+          
+          // Show response details if there are any responses
+          if (totalResponses > 0) ...[
+            const SizedBox(height: 8),
+            const Divider(height: 1),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.people, size: 16, color: Colors.green.shade700),
+                      const SizedBox(width: 4),
                       Text(
-                        '• $timeAgo',
-                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                        '$totalResponses/$quantityNeeded donors responded',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                          fontSize: 12,
+                        ),
                       ),
                     ],
+                  ),
+                  if (bloodTypeCount.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 8,
+                      children: bloodTypeCount.entries.map((entry) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade100,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '${entry.key}: ${entry.value}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade800,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
                   ],
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: status == 'FULFILLED' 
-                ? null  // Disable if already fulfilled
-                : () => _respondToRequest(requestId),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: status == 'FULFILLED' ? Colors.green : Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            child: Text(status == 'FULFILLED' ? 'Fulfilled' : 'Respond'),
-          ),
+          ],
         ],
       ),
     );

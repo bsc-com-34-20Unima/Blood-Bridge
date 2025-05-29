@@ -326,6 +326,18 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
 
     Color bloodTypeColor = _bloodTypeColors[displayBloodType] ?? Colors.grey.shade200;
     
+    // Get donor response information
+    List<dynamic> donorResponses = request['donorResponses'] ?? [];
+    int totalResponses = donorResponses.length;
+    int quantityNeeded = request['quantity'] ?? 1;
+    
+    // Calculate blood type breakdown for responses
+    Map<String, int> bloodTypeCount = {};
+    for (var response in donorResponses) {
+      String responseBloodType = response['donor']?['bloodType'] ?? 'Unknown';
+      bloodTypeCount[responseBloodType] = (bloodTypeCount[responseBloodType] ?? 0) + 1;
+    }
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -388,6 +400,75 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
                   Icons.people, 'Donors notified: ${request['donorsNotified']?.toString() ?? '0'}'),
             if (request['createdAt'] != null)
               _buildInfoRow(Icons.date_range, 'Created: ${_formatDate(request['createdAt'])}'),
+            
+            // Show donor responses section if there are any responses
+            if (totalResponses > 0) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.people, size: 20, color: Colors.green.shade700),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Donor Responses: $totalResponses/$quantityNeeded',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (bloodTypeCount.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Blood Type Breakdown:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade700,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: bloodTypeCount.entries.map((entry) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.blue.shade300),
+                            ),
+                            child: Text(
+                              '${entry.key}: ${entry.value}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade800,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 12),
             if (request['status'] == 'ACTIVE' || request['status'] == 'PENDING')
               Row(
@@ -447,6 +528,8 @@ class _BloodRequestsState extends State<BloodRequests> with SingleTickerProvider
         return Colors.green;
       case 'CANCELLED':
         return Colors.red;
+      case 'PARTIALLY_FULFILLED':
+        return Colors.amber;
       default:
         return Colors.grey;
     }

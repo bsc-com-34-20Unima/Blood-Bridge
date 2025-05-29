@@ -285,14 +285,17 @@ Future<void> _loadEvents() async {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.red,
-        onPressed: () {
-          _showCreateScheduleDialog(context);
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Schedule New Donation Session'),
-      ),
-    );
+    backgroundColor: Colors.red,
+    onPressed: () {
+      _showCreateScheduleDialog(context);
+    },
+    icon: const Icon(Icons.add, color: Colors.white),
+    label: const Text(
+      'Schedule New Donation Session',
+      style: TextStyle(color: Colors.white),
+    ),
+  ),
+  floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,);
   }
   
   void _showCreateScheduleDialog(BuildContext context) {
@@ -397,13 +400,6 @@ class DonationScheduleCard extends StatelessWidget {
                               ),
                           ],
                         ),
-                        Text(
-                          '$donorsAssigned/$unitsRequired donors assigned',
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey[600],
-                          ),
-                        ),
                       ],
                     ),
                     
@@ -465,13 +461,6 @@ class DonationScheduleCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Session ID: #${sessionId.substring(0, 5)}',
-                          style: TextStyle(
-                            fontSize: 12.0,
-                            color: Colors.grey[600],
-                          ),
-                        ),
                         ElevatedButton(
                           onPressed: () {
                             // Navigate to manage donation screen
@@ -705,10 +694,11 @@ Future<void> _submitForm() async {
                 // Title
                 const Center(
                   child: Text(
-                    'Schedule New Donation Session',
+                    'Schedule Donation Session',
                     style: TextStyle(
                       fontSize: 20.0,
                       fontWeight: FontWeight.bold,
+                      color: Colors.red,
                     ),
                   ),
                 ),
@@ -723,7 +713,7 @@ Future<void> _submitForm() async {
                       decoration: const InputDecoration(
                         labelText: 'Date',
                         border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.calendar_today),
+                        suffixIcon: Icon(Icons.calendar_today,),
                       ),
                       controller: TextEditingController(
                         text: DateFormat('EEEE, MMMM d, yyyy').format(_selectedDate),
@@ -824,7 +814,7 @@ Future<void> _submitForm() async {
                       decoration: const InputDecoration(
                         labelText: 'Start Time',
                         border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.access_time),
+                        suffixIcon: Icon(Icons.access_time, ),
                       ),
                       controller: TextEditingController(text: _startTime),
                       validator: (value) {
@@ -847,7 +837,7 @@ Future<void> _submitForm() async {
                       decoration: const InputDecoration(
                         labelText: 'End Time',
                         border: OutlineInputBorder(),
-                        suffixIcon: Icon(Icons.access_time),
+                        suffixIcon: Icon(Icons.access_time,),
                       ),
                       controller: TextEditingController(text: _endTime),
                       validator: (value) {
@@ -928,7 +918,7 @@ Future<void> _submitForm() async {
                   ),
                   child: const Text(
                     'Create Schedule',
-                    style: TextStyle(fontSize: 16.0),
+                    style: TextStyle(fontSize: 16.0, color: Colors.white),
                   ),
                 ),
                 

@@ -218,13 +218,13 @@ class _DonorsPageState extends State<DonorsPage> {
   List<Donor> donors = [];
   List<Donor> filteredDonors = [];
   bool isLoading = true;
-  String selectedBloodType = 'All Blood Types';
-  String selectedStatus = 'All Statuses';
+  String selectedBloodType = 'Blood Types';
+  String selectedStatus = 'Statuses';
   String selectedTimeframe = 'All Time';
   String searchQuery = '';
 
-  final List<String> bloodTypes = ['All Blood Types', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
-  final List<String> statusOptions = ['All Statuses', 'Active', 'Pending', 'Ineligible'];
+  final List<String> bloodTypes = ['Blood Types', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+  final List<String> statusOptions = ['Statuses', 'Active', 'Pending', 'Ineligible'];
 
   @override
   void initState() {
@@ -239,8 +239,8 @@ class _DonorsPageState extends State<DonorsPage> {
     
     try {
       final fetchedDonors = await _donorService.getDonors(
-        bloodGroup: selectedBloodType != 'All Blood Types' ? selectedBloodType : null,
-        status: selectedStatus != 'All Statuses' ? selectedStatus : null,
+        bloodGroup: selectedBloodType != 'Blood Types' ? selectedBloodType : null,
+        status: selectedStatus != 'Statuses' ? selectedStatus : null,
         search: searchQuery.isNotEmpty ? searchQuery : null,
       );
       
@@ -614,16 +614,7 @@ class _DonorsPageState extends State<DonorsPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.add),
-        onPressed: () {
-          // Navigate to add donor page
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddDonorPage()),
-          ).then((_) => _fetchDonors()); // Refresh list when returning
-        },
-      ),
+     
     );
   }
 }
@@ -764,238 +755,7 @@ class DonorListTile extends StatelessWidget {
   }
 }
 
-// Add Donor Page
-class AddDonorPage extends StatefulWidget {
-  @override
-  _AddDonorPageState createState() => _AddDonorPageState();
-}
 
-class _AddDonorPageState extends State<AddDonorPage> {
-  final _formKey = GlobalKey<FormState>();
-  final DonorService _donorService = DonorService();
-  
-  String? selectedBloodGroup = 'A+';
-  DateTime? selectedLastDonationDate;
-  
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController phoneController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
-  
-  bool isSubmitting = false;
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Add New Donor"),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "Donor Information",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: "Full Name",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter donor name';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  labelText: "Email Address",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter email address';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: phoneController,
-                decoration: InputDecoration(
-                  labelText: "Phone Number",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter phone number';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              TextFormField(
-                controller: passwordController,
-                decoration: InputDecoration(
-                  labelText: "Password",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: selectedBloodGroup,
-                decoration: InputDecoration(
-                  labelText: "Blood Group",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.bloodtype),
-                ),
-                items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
-                    .map((type) => DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedBloodGroup = value;
-                  });
-                },
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please select blood group';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              GestureDetector(
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: selectedLastDonationDate ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  );
-                  if (picked != null && picked != selectedLastDonationDate) {
-                    setState(() {
-                      selectedLastDonationDate = picked;
-                    });
-                  }
-                },
-                child: AbsorbPointer(
-                  child: TextFormField(
-                    decoration: InputDecoration(
-                      labelText: "Last Donation Date",
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                      suffixIcon: Icon(Icons.arrow_drop_down),
-                    ),
-                    controller: TextEditingController(
-                      text: selectedLastDonationDate != null
-                          ? "${selectedLastDonationDate!.toLocal()}".split(' ')[0]
-                          : '',
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isSubmitting ? null : _submitForm,
-                  child: isSubmitting
-                      ? CircularProgressIndicator(color: Colors.white)
-                      : Text("Register Donor", style: TextStyle(fontSize: 16)),
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        isSubmitting = true;
-      });
-
-      try {
-        // Create donor object
-        Map<String, dynamic> donorData = {
-          'name': nameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'password': passwordController.text,
-          'bloodGroup': selectedBloodGroup,
-          'lastDonation': selectedLastDonationDate?.toIso8601String(),
-          'status': 'Active',
-        };
-
-        // Make POST request to create donor
-        final response = await http.post(
-          Uri.parse('https://blood-bridge-2f7x.onrender.com/donors'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode(donorData),
-        );
-
-        if (response.statusCode == 201 || response.statusCode == 200) {
-          // Successfully created
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Donor registered successfully")),
-          );
-          Navigator.pop(context); // Return to donors list
-        } else {
-          throw Exception('Failed to register donor: ${response.statusCode}');
-        }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error registering donor: $e")),
-        );
-      } finally {
-        setState(() {
-          isSubmitting = false;
-        });
-      }
-    }
-  }
-}
 
 // Donor Detail Page
 class DonorDetailPage extends StatefulWidget {
@@ -1575,17 +1335,13 @@ class _EditDonorPageState extends State<EditDonorPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "Update Donor Information",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
               SizedBox(height: 16),
               TextFormField(
                 controller: nameController,
                 decoration: InputDecoration(
                   labelText: "Full Name",
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
+                  prefixIcon: Icon(Icons.person,  color: Colors.redAccent,),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -1600,7 +1356,7 @@ class _EditDonorPageState extends State<EditDonorPage> {
                 decoration: InputDecoration(
                   labelText: "Email Address",
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                  prefixIcon: Icon(Icons.email,color: Colors.redAccent,),
                 ),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
@@ -1619,7 +1375,8 @@ class _EditDonorPageState extends State<EditDonorPage> {
                 decoration: InputDecoration(
                   labelText: "Phone Number",
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
+                  prefixIcon: Icon(Icons.phone, color: Colors.redAccent,),
+                  
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
@@ -1635,7 +1392,7 @@ class _EditDonorPageState extends State<EditDonorPage> {
                 decoration: InputDecoration(
                   labelText: "Blood Group",
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.bloodtype),
+                  prefixIcon: Icon(Icons.bloodtype, color: Colors.redAccent,),
                 ),
                 items: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
                     .map((type) => DropdownMenuItem(
@@ -1675,8 +1432,8 @@ class _EditDonorPageState extends State<EditDonorPage> {
                     decoration: InputDecoration(
                       labelText: "Last Donation Date",
                       border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.calendar_today),
-                      suffixIcon: Icon(Icons.arrow_drop_down),
+                      prefixIcon: Icon(Icons.calendar_today, color: Colors.redAccent,),
+                      suffixIcon: Icon(Icons.arrow_drop_down, color: Colors.redAccent,),
                     ),
                     controller: TextEditingController(
                       text: selectedLastDonationDate != null
